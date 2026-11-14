@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcards Alemão–Português</title>
+<meta name="theme-color" content="#6c63ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Alemão">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+:root{
+  --bg:#0f1117;--surface:#1a1d2e;--surface2:#252840;--surface3:#2e3250;
+  --accent:#6c63ff;--accent2:#ff6584;--text:#e8e8f0;--text-muted:#8888aa;
+  --success:#4ade80;--danger:#f87171;--warn:#facc15;
+  --card-front:#1e2140;--card-back:#1a2e40;
+  --radius:16px;--flip:0.55s cubic-bezier(.45,.05,.55,.95);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:14px 13px 40px;gap:13px;max-width:520px;margin:auto;}
+
+/* ── NAV TABS ── */
+.tabs{display:flex;gap:6px;width:100%;}
+.tab{flex:1;padding:8px 4px;border:none;border-radius:10px;background:var(--surface2);
+  color:var(--text-muted);font-size:.78rem;font-weight:600;cursor:pointer;transition:.15s;}
+.tab.active{background:var(--accent);color:#fff;}
+
+/* ── VIEWS ── */
+.view{display:none;width:100%;flex-direction:column;gap:13px;align-items:center;}
+.view.show{display:flex;}
+
+/* ── CONTROLS ── */
+h1{font-size:1.15rem;font-weight:700;align-self:flex-start;}
+h1 span{color:var(--accent);}
+.controls{display:flex;gap:7px;flex-wrap:wrap;width:100%;}
+.btn{border:none;border-radius:10px;padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.12s;}
+.btn:active{transform:scale(.96);}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-secondary{background:var(--surface2);color:var(--text);}
+.btn-add{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+.btn-srs{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;}
+select{background:var(--surface2);color:var(--text);border:none;border-radius:10px;
+  padding:7px 10px;font-size:.82rem;cursor:pointer;outline:none;}
+
+/* ── PROGRESS ── */
+.progress-wrap{width:100%;display:flex;flex-direction:column;gap:4px;}
+.progress-info{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-muted);}
+.progress-bar{height:4px;background:var(--surface2);border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:99px;transition:width .4s ease;}
+
+/* ── CARD ── */
+.scene{width:100%;perspective:1000px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;}
+.card{position:relative;width:100%;padding-top:56%;transform-style:preserve-3d;
+  transition:transform var(--flip);border-radius:var(--radius);}
+.card.flipped{transform:rotateY(180deg);}
+.card-face{position:absolute;inset:0;border-radius:var(--radius);backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:18px 16px;gap:6px;}
+.front{background:var(--card-front);border:1px solid rgba(108,99,255,.25);box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.back{background:var(--card-back);border:1px solid rgba(255,101,132,.25);transform:rotateY(180deg);box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.card-label{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.front .card-label{color:rgba(108,99,255,.7);}
+.back  .card-label{color:rgba(255,101,132,.7);}
+.card-word{font-size:1.9rem;font-weight:800;text-align:center;line-height:1.1;}
+.front .card-word{color:#c9c5ff;}
+.back  .card-word{color:#ffc5cf;}
+.card-hint{font-size:.73rem;color:var(--text-muted);text-align:center;font-style:italic;}
+.flip-hint{font-size:.6rem;color:var(--text-muted);opacity:.45;position:absolute;bottom:8px;right:12px;}
+.level-badge{font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:99px;
+  background:rgba(255,255,255,.07);color:var(--text-muted);letter-spacing:.08em;}
+.srs-badge{font-size:.6rem;padding:2px 7px;border-radius:99px;position:absolute;top:10px;left:10px;}
+.srs-new{background:rgba(108,99,255,.2);color:#a5a0ff;}
+.srs-learn{background:rgba(250,204,21,.2);color:#fcd34d;}
+.srs-review{background:rgba(74,222,128,.2);color:#86efac;}
+.audio-btn{background:rgba(255,255,255,.07);border:none;border-radius:50%;width:30px;height:30px;
+  cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;position:absolute;top:10px;right:10px;}
+.audio-btn:active{transform:scale(.9);}
+
+/* ── ANSWER ROW ── */
+.answer-row{display:flex;gap:10px;width:100%;}
+.answer-row .btn{flex:1;padding:12px;font-size:.88rem;border-radius:12px;}
+.btn-wrong{background:rgba(248,113,113,.12);color:var(--danger);border:1px solid rgba(248,113,113,.3);}
+.btn-hard {background:rgba(250,204,21,.12);color:var(--warn); border:1px solid rgba(250,204,21,.3);}
+.btn-right{background:rgba(74,222,128,.12);color:var(--success);border:1px solid rgba(74,222,128,.3);}
+
+/* ── STATS ROW ── */
+.stats-row{display:flex;gap:8px;width:100%;}
+.stat-box{flex:1;background:var(--surface);border-radius:12px;padding:8px;text-align:center;}
+.stat-num{font-size:1.25rem;font-weight:800;}
+.stat-label{font-size:.6rem;color:var(--text-muted);margin-top:1px;}
+.stat-box.correct .stat-num{color:var(--success);}
+.stat-box.wrong   .stat-num{color:var(--danger);}
+.stat-box.hard    .stat-num{color:var(--warn);}
+
+/* ── DONE ── */
+.done-screen{display:none;flex-direction:column;align-items:center;gap:11px;width:100%;text-align:center;}
+.done-screen.show{display:flex;}
+.done-emoji{font-size:2.4rem;}
+.done-title{font-size:1.5rem;font-weight:800;}
+.done-score{font-size:.9rem;color:var(--text-muted);}
+.done-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;}
+.done-cell{background:var(--surface);border-radius:12px;padding:10px;text-align:center;}
+.done-cell .num{font-size:1.4rem;font-weight:800;color:var(--accent);}
+.done-cell .lbl{font-size:.65rem;color:var(--text-muted);}
+
+/* ── STATS VIEW ── */
+.stats-section{width:100%;}
+.stats-section h2{font-size:.85rem;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
+.level-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;width:100%;}
+.level-card{background:var(--surface);border-radius:12px;padding:10px 6px;text-align:center;}
+.level-card .lname{font-size:.72rem;font-weight:700;color:var(--accent);}
+.level-card .lpct{font-size:1.3rem;font-weight:800;}
+.level-card .lsub{font-size:.6rem;color:var(--text-muted);}
+.level-bar{height:3px;border-radius:99px;background:var(--surface2);margin-top:5px;overflow:hidden;}
+.level-bar-fill{height:100%;background:var(--accent);border-radius:99px;}
+.error-list{width:100%;display:flex;flex-direction:column;gap:7px;}
+.error-item{background:var(--surface);border-radius:12px;padding:10px 13px;display:flex;justify-content:space-between;align-items:center;}
+.error-de{font-weight:700;font-size:.9rem;}
+.error-pt{font-size:.8rem;color:var(--text-muted);}
+.error-cnt{font-size:.75rem;color:var(--danger);font-weight:700;white-space:nowrap;}
+.empty-msg{color:var(--text-muted);font-size:.85rem;text-align:center;padding:20px 0;}
+
+/* ── SRS INFO ── */
+.srs-info{width:100%;background:var(--surface);border-radius:12px;padding:11px 13px;
+  display:flex;justify-content:space-between;font-size:.78rem;}
+.srs-col{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.srs-col .n{font-weight:800;font-size:1rem;}
+.srs-col .l{color:var(--text-muted);font-size:.65rem;}
+.srs-col.new    .n{color:#a5a0ff;}
+.srs-col.learn  .n{color:#fcd34d;}
+.srs-col.review .n{color:#86efac;}
+
+/* ── MODO DIGITAÇÃO ── */
+.type-card{width:100%;background:var(--card-front);border:1px solid rgba(108,99,255,.25);
+  border-radius:var(--radius);padding:22px 18px;display:flex;flex-direction:column;
+  align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.type-pt-label{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,101,132,.7);}
+.type-pt-word{font-size:2rem;font-weight:800;color:#ffc5cf;text-align:center;line-height:1.1;}
+.type-pt-hint{font-size:.73rem;color:var(--text-muted);font-style:italic;text-align:center;}
+.type-grammar{font-size:.7rem;color:var(--text-muted);font-style:italic;}
+.type-input-wrap{width:100%;position:relative;}
+.type-input{width:100%;background:var(--bg);border:2px solid var(--surface2);color:var(--text);
+  border-radius:12px;padding:12px 44px 12px 14px;font-size:1.1rem;font-weight:600;
+  outline:none;text-align:center;letter-spacing:.02em;transition:.2s;}
+.type-input:focus{border-color:var(--accent);}
+.type-input.correct{border-color:var(--success);background:rgba(74,222,128,.06);}
+.type-input.wrong{border-color:var(--danger);background:rgba(248,113,113,.06);}
+.type-audio{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:rgba(255,255,255,.07);border:none;border-radius:50%;width:30px;height:30px;
+  cursor:pointer;font-size:1rem;}
+.type-feedback{font-size:.85rem;font-weight:700;text-align:center;min-height:1.2em;}
+.type-feedback.ok{color:var(--success);}
+.type-feedback.err{color:var(--danger);}
+.type-answer{font-size:.82rem;color:var(--text-muted);text-align:center;min-height:1.2em;}
+.type-answer span{color:#c9c5ff;font-weight:700;}
+.type-hint-btn{background:none;border:none;color:var(--text-muted);font-size:.72rem;
+  cursor:pointer;text-decoration:underline;opacity:.6;}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;
+  align-items:center;justify-content:center;padding:16px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);padding:18px;width:100%;
+  max-width:400px;display:flex;flex-direction:column;gap:10px;border:1px solid var(--surface2);
+  max-height:92vh;overflow-y:auto;}
+.modal h2{font-size:.92rem;}
+.modal label{font-size:.73rem;color:var(--text-muted);display:block;margin-bottom:3px;}
+.modal input,.modal select,.modal textarea{width:100%;background:var(--bg);border:1px solid var(--surface2);
+  color:var(--text);border-radius:8px;padding:7px 9px;font-size:.86rem;outline:none;font-family:inherit;}
+.modal input:focus,.modal textarea:focus{border-color:var(--accent);}
+.modal textarea{resize:vertical;min-height:100px;line-height:1.4;}
+.modal-row{display:flex;gap:8px;}
+.modal-row .btn{flex:1;padding:9px;}
+.modal-tabs{display:flex;gap:5px;margin-bottom:4px;}
+.modal-tab{flex:1;padding:6px;border:none;border-radius:8px;background:var(--surface2);
+  color:var(--text-muted);font-size:.75rem;font-weight:600;cursor:pointer;}
+.modal-tab.active{background:var(--accent);color:#fff;}
+.modal-pane{display:none;flex-direction:column;gap:10px;}
+.modal-pane.show{display:flex;}
+.import-help{font-size:.68rem;color:var(--text-muted);line-height:1.5;background:var(--bg);
+  border-radius:8px;padding:7px 9px;}
+.import-result{font-size:.78rem;color:var(--success);font-weight:600;min-height:1.2em;}
+
+/* ── MÚLTIPLA ESCOLHA ── */
+.mc-card{width:100%;background:var(--card-front);border:1px solid rgba(108,99,255,.25);
+  border-radius:var(--radius);padding:22px 18px;display:flex;flex-direction:column;
+  align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.mc-label{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(108,99,255,.7);}
+.mc-word{font-size:2rem;font-weight:800;color:#c9c5ff;text-align:center;line-height:1.1;}
+.mc-hint{font-size:.73rem;color:var(--text-muted);font-style:italic;}
+.mc-options{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;}
+.mc-opt{background:var(--surface2);border:2px solid transparent;border-radius:12px;
+  padding:11px 10px;font-size:.88rem;font-weight:600;cursor:pointer;transition:.15s;
+  text-align:center;color:var(--text);}
+.mc-opt:active{transform:scale(.97);}
+.mc-opt.correct{background:rgba(74,222,128,.12);border-color:var(--success);color:var(--success);}
+.mc-opt.wrong  {background:rgba(248,113,113,.12);border-color:var(--danger);color:var(--danger);}
+.mc-opt.reveal {background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.4);color:var(--success);}
+.mc-opt:disabled{cursor:default;}
+.mc-example{font-size:.73rem;color:var(--text-muted);font-style:italic;text-align:center;min-height:1em;}
+</style>
+</head>
+<body>
+
+<h1>🇩🇪 Flashcards <span>Alemão</span> → 🇧🇷</h1>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" data-view="study">📚 Estudar</button>
+  <button class="tab" data-view="type">⌨️ Digitar</button>
+  <button class="tab" data-view="mc">🎯 Quiz</button>
+  <button class="tab" data-view="srs">🔁 SRS</button>
+  <button class="tab" data-view="stats">📊 Stats</button>
+</div>
+
+<!-- ══ VIEW: STUDY ══ -->
+<div class="view show" id="view-study">
+  <div class="controls">
+    <select id="categorySelect"></select>
+    <select id="levelSelect"></select>
+    <button class="btn btn-primary"   id="shuffleBtn">🔀 Embaralhar</button>
+    <button class="btn btn-secondary" id="resetBtn">↺ Reiniciar</button>
+    <button class="btn btn-add"       id="addBtn">＋ Adicionar</button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span id="progressText">Carta 1 de …</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="card" id="card">
+      <div class="card-face front">
+        <div class="card-label">Alemão</div>
+        <div class="card-word" id="frontWord"></div>
+        <div class="card-hint" id="frontHint"></div>
+        <button class="audio-btn" id="audioBtn" title="Ouvir">🔊</button>
+        <div class="flip-hint">👆 toque para virar</div>
+      </div>
+      <div class="card-face back">
+        <div class="card-label">Português</div>
+        <div class="card-word" id="backWord"></div>
+        <div class="card-hint" id="backHint"></div>
+        <div class="level-badge" id="backLevel"></div>
+        <div class="flip-hint">👆 toque para virar</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="answer-row" id="answerRow" style="display:none">
+    <button class="btn btn-wrong" id="wrongBtn">✗ Errei</button>
+    <button class="btn btn-right" id="rightBtn">✓ Acertei</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box correct"><div class="stat-num" id="correctCount">0</div><div class="stat-label">✓ Acertos</div></div>
+    <div class="stat-box wrong">  <div class="stat-num" id="wrongCount">0</div>  <div class="stat-label">✗ Erros</div></div>
+    <div class="stat-box">        <div class="stat-num" id="totalSeen">0</div>   <div class="stat-label">Vistas</div></div>
+  </div>
+
+  <div class="done-screen" id="doneScreen">
+    <div class="done-emoji" id="doneEmoji">🎉</div>
+    <div class="done-title">Rodada concluída!</div>
+    <div class="done-score" id="doneScore"></div>
+    <div class="done-grid" id="doneLevelGrid"></div>
+    <button class="btn btn-primary" id="restartBtn" style="padding:11px 28px;font-size:.92rem;">Jogar novamente</button>
+  </div>
+</div>
+
+<!-- ══ VIEW: DIGITAR ══ -->
+<div class="view" id="view-type">
+  <div class="controls">
+    <select id="typeCategorySelect"></select>
+    <select id="typeLevelSelect"></select>
+    <button class="btn btn-primary" id="typeShuffleBtn">🔀 Embaralhar</button>
+    <button class="btn btn-secondary" id="typeResetBtn">↺ Reiniciar</button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span id="typeProgressText">Carta 1 de …</span>
+      <span id="typeProgressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="typeProgressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="type-card" id="typeCard">
+    <div class="type-pt-label">Português → Alemão</div>
+    <div class="type-pt-word" id="typePtWord"></div>
+    <div class="type-pt-hint" id="typePtHint"></div>
+    <div class="type-grammar" id="typeGrammar"></div>
+    <div class="type-input-wrap">
+      <input type="text" class="type-input" id="typeInput" placeholder="Digite em alemão…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <button class="type-audio" id="typeAudioRevealBtn" style="display:none" title="Ouvir">🔊</button>
+    </div>
+    <div class="type-feedback" id="typeFeedback"></div>
+    <div class="type-answer" id="typeAnswer"></div>
+    <button class="type-hint-btn" id="typeHintBtn">💡 dica</button>
+  </div>
+
+  <div class="answer-row" id="typeNextRow" style="display:none">
+    <button class="btn btn-wrong" id="typeWrongBtn">✗ Errei</button>
+    <button class="btn btn-right" id="typeNextBtn">→ Próxima</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box correct"><div class="stat-num" id="typeCorrect">0</div><div class="stat-label">✓ Acertos</div></div>
+    <div class="stat-box wrong">  <div class="stat-num" id="typeWrong">0</div>  <div class="stat-label">✗ Erros</div></div>
+    <div class="stat-box">        <div class="stat-num" id="typeSeen">0</div>   <div class="stat-label">Vistas</div></div>
+  </div>
+
+  <div class="done-screen" id="typeDoneScreen">
+    <div class="done-emoji" id="typeDoneEmoji">🎉</div>
+    <div class="done-title">Rodada concluída!</div>
+    <div class="done-score" id="typeDoneScore"></div>
+    <button class="btn btn-primary" id="typeRestartBtn" style="padding:11px 28px;">Jogar novamente</button>
+  </div>
+</div>
+
+<!-- ══ VIEW: MÚLTIPLA ESCOLHA ══ -->
+<div class="view" id="view-mc">
+  <div class="controls">
+    <select id="mcCategorySelect"></select>
+    <select id="mcLevelSelect"></select>
+    <button class="btn btn-primary" id="mcShuffleBtn">🔀 Embaralhar</button>
+    <button class="btn btn-secondary" id="mcResetBtn">↺ Reiniciar</button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span id="mcProgressText">Carta 1 de …</span>
+      <span id="mcProgressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="mcProgressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="mc-card" id="mcCard">
+    <div class="mc-label">Alemão → Português</div>
+    <div class="mc-word" id="mcWord"></div>
+    <div class="mc-hint" id="mcHint"></div>
+    <div class="mc-options" id="mcOptions"></div>
+    <div class="mc-example" id="mcExample"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box correct"><div class="stat-num" id="mcCorrect">0</div><div class="stat-label">✓ Acertos</div></div>
+    <div class="stat-box wrong">  <div class="stat-num" id="mcWrong">0</div>  <div class="stat-label">✗ Erros</div></div>
+    <div class="stat-box">        <div class="stat-num" id="mcSeen">0</div>   <div class="stat-label">Vistas</div></div>
+  </div>
+
+  <div class="done-screen" id="mcDoneScreen">
+    <div class="done-emoji" id="mcDoneEmoji">🎉</div>
+    <div class="done-title">Quiz concluído!</div>
+    <div class="done-score" id="mcDoneScore"></div>
+    <button class="btn btn-primary" id="mcRestartBtn" style="padding:11px 28px;">Jogar novamente</button>
+  </div>
+</div>
+
+<!-- ══ VIEW: SRS ══ -->
+<div class="view" id="view-srs">
+  <div class="controls">
+    <select id="srsCategorySelect"></select>
+    <select id="srsLevelSelect"></select>
+  </div>
+  <div class="srs-info">
+    <div class="srs-col new">    <span class="n" id="srsNew">0</span>   <span class="l">Novas</span></div>
+    <div class="srs-col learn">  <span class="n" id="srsLearn">0</span> <span class="l">Aprender</span></div>
+    <div class="srs-col review"> <span class="n" id="srsReview">0</span><span class="l">Revisar</span></div>
+    <div class="srs-col">        <span class="n" id="srsDone">0</span>  <span class="l">Dominadas</span></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span id="srsProgressText">Carta 1 de …</span>
+      <span id="srsProgressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="srsProgressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="scene" id="srsScene">
+    <div class="card" id="srsCard">
+      <div class="card-face front">
+        <div class="card-label">Alemão</div>
+        <div class="card-word" id="srsFrontWord"></div>
+        <div class="card-hint" id="srsFrontHint"></div>
+        <div class="srs-badge srs-new" id="srsBadge">Nova</div>
+        <button class="audio-btn" id="srsAudioBtn" title="Ouvir">🔊</button>
+        <div class="flip-hint">👆 toque para virar</div>
+      </div>
+      <div class="card-face back">
+        <div class="card-label">Português</div>
+        <div class="card-word" id="srsBackWord"></div>
+        <div class="card-hint" id="srsBackHint"></div>
+        <div class="level-badge" id="srsBackLevel"></div>
+        <div class="flip-hint">👆 toque para virar</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="answer-row" id="srsAnswerRow" style="display:none">
+    <button class="btn btn-wrong"  id="srsWrongBtn">✗ Difícil</button>
+    <button class="btn btn-hard"   id="srsHardBtn">~ OK</button>
+    <button class="btn btn-right"  id="srsRightBtn">✓ Fácil</button>
+    <button class="btn btn-secondary" id="srsHideBtn" title="Ocultar esta carta">👁 Ocultar</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box correct"><div class="stat-num" id="srsCorrect">0</div><div class="stat-label">✓ Acertos</div></div>
+    <div class="stat-box hard">   <div class="stat-num" id="srsHard">0</div>   <div class="stat-label">~ OK</div></div>
+    <div class="stat-box wrong">  <div class="stat-num" id="srsWrong">0</div>  <div class="stat-label">✗ Difícil</div></div>
+  </div>
+
+  <div class="done-screen" id="srsDoneScreen">
+    <div class="done-emoji">🏆</div>
+    <div class="done-title">Revisão concluída!</div>
+    <div class="done-score" id="srsDoneScore"></div>
+    <button class="btn btn-primary" id="srsRestartBtn" style="padding:11px 28px;">Revisar novamente</button>
+  </div>
+</div>
+
+<!-- ══ VIEW: STATS ══ -->
+<div class="view" id="view-stats">
+  <div class="stats-section">
+    <h2>Desempenho por nível</h2>
+    <div class="level-grid" id="levelGrid"></div>
+  </div>
+  <div class="stats-section">
+    <h2>Palavras com mais erros</h2>
+    <div class="error-list" id="errorList"></div>
+  </div>
+  <div class="stats-section" id="hiddenSection" style="display:none">
+    <h2>Cartas ocultas <span id="hiddenCount" style="font-size:.8rem;opacity:.6;"></span></h2>
+    <div class="error-list" id="hiddenList"></div>
+    <button class="btn btn-secondary" id="showAllBtn" style="font-size:.75rem;margin-top:4px;">👁 Reativar todas</button>
+  </div>
+  <button class="btn btn-secondary" id="resetStatsBtn" style="align-self:center;margin-top:4px;font-size:.75rem;opacity:.6;">Zerar estatísticas</button>
+</div>
+
+<!-- ══ MODAL ADICIONAR ══ -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>➕ Adicionar cartas</h2>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="modalTab1">✏️ Uma carta</button>
+      <button class="modal-tab" id="modalTab2">📋 Importar lista</button>
+    </div>
+
+    <!-- PANE 1: carta individual -->
+    <div class="modal-pane show" id="modalPane1">
+      <div><label>Categoria</label>
+        <select id="newCategory"><option>Verbos</option><option>Substantivos</option><option>Adjetivos</option><option>Advérbios</option><option>Frases</option><option>Gramática</option><option>Outros</option></select></div>
+      <div><label>Nível</label>
+        <select id="newLevel"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select></div>
+      <div><label>Palavra em Alemão</label><input type="text" id="newDe" placeholder="z.B.: schlafen" autocorrect="off" autocapitalize="off"/></div>
+      <div><label>Info gramatical (SEM tradução)</label><input type="text" id="newDeHint" placeholder="Verbo · irregular"/></div>
+      <div><label>Tradução em Português</label><input type="text" id="newPt" placeholder="ex.: dormir"/></div>
+      <div><label>Exemplo (verso — opcional)</label><input type="text" id="newPtHint" placeholder="Ich schlafe gut. · Durmo bem."/></div>
+      <div class="modal-row">
+        <button class="btn btn-secondary" id="cancelModal">Cancelar</button>
+        <button class="btn btn-add"       id="saveModal">Salvar</button>
+      </div>
+    </div>
+
+    <!-- PANE 2: importar lista -->
+    <div class="modal-pane" id="modalPane2">
+      <div class="import-help">
+        Cole uma lista, um item por linha. Formatos aceitos:<br>
+        <b>alemão = português</b><br>
+        <b>alemão - português</b><br>
+        <b>alemão : português</b><br>
+        <b>alemão | português</b><br>
+        <b>alemão → português</b><br>
+        Exemplo: <code>schlafen = dormir</code>
+      </div>
+      <div>
+        <label>Nível padrão</label>
+        <select id="importLevel"><option>A1</option><option>A2</option><option selected>B1</option><option>B2</option><option>C1</option></select>
+      </div>
+      <div>
+        <label>Categoria padrão</label>
+        <select id="importCategory"><option>Verbos</option><option selected>Substantivos</option><option>Adjetivos</option><option>Advérbios</option><option>Frases</option><option>Outros</option></select>
+      </div>
+      <div><label>Lista de palavras</label>
+        <textarea id="importText" placeholder="schlafen = dormir&#10;der Hund = o cachorro&#10;schön = bonito"></textarea>
+      </div>
+      <div class="import-result" id="importResult"></div>
+      <div class="modal-row">
+        <button class="btn btn-secondary" id="cancelImport">Cancelar</button>
+        <button class="btn btn-add"       id="saveImport">Importar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DADOS — 500 palavras A1–C1
+// ═══════════════════════════════════════════════════════════
+const RAW=[
+["sein","Verbo · sein/ist · irregular","ser / estar","Ich bin müde. · Estou cansado.","Verbos","A1"],
+["haben","Verbo · haben/hat","ter","Ich habe Hunger. · Tenho fome.","Verbos","A1"],
+["werden","Verbo · wird · irregular","tornar-se / ficar","Ich werde Arzt. · Vou ser médico.","Verbos","A1"],
+["gehen","Verbo · gehen/geht","ir / andar","Ich gehe nach Hause. · Vou para casa.","Verbos","A1"],
+["kommen","Verbo · kommen/kommt","vir / chegar","Woher kommst du? · De onde você vem?","Verbos","A1"],
+["machen","Verbo · machen/macht","fazer","Was machst du? · O que você faz?","Verbos","A1"],
+["sagen","Verbo · sagen/sagt","dizer / falar","Was sagst du? · O que você diz?","Verbos","A1"],
+["wissen","Verbo · weiß/wissen · irregular","saber","Ich weiß nicht. · Não sei.","Verbos","A1"],
+["sehen","Verbo · sieht · stark","ver","Ich sehe dich. · Eu te vejo.","Verbos","A1"],
+["hören","Verbo · hören/hört","ouvir","Ich höre Musik. · Ouço música.","Verbos","A1"],
+["essen","Verbo · isst · stark","comer","Was isst du gerne? · O que você gosta de comer?","Verbos","A1"],
+["trinken","Verbo · trinkt · stark","beber","Ich trinke Wasser. · Bebo água.","Verbos","A1"],
+["wohnen","Verbo · wohnt","morar","Wo wohnst du? · Onde você mora?","Verbos","A1"],
+["arbeiten","Verbo · arbeitet","trabalhar","Ich arbeite viel. · Trabalho muito.","Verbos","A1"],
+["kaufen","Verbo · kauft","comprar","Ich kaufe Brot. · Compro pão.","Verbos","A1"],
+["lesen","Verbo · liest · stark","ler","Ich lese ein Buch. · Leio um livro.","Verbos","A1"],
+["schreiben","Verbo · schreibt · stark","escrever","Ich schreibe einen Brief. · Escrevo uma carta.","Verbos","A1"],
+["schlafen","Verbo · schläft · stark","dormir","Ich schlafe gut. · Durmo bem.","Verbos","A1"],
+["spielen","Verbo · spielt","jogar / brincar","Er spielt Fußball. · Ele joga futebol.","Verbos","A1"],
+["sprechen","Verbo · spricht · stark","falar (um idioma)","Sprichst du Deutsch? · Você fala alemão?","Verbos","A1"],
+["lernen","Verbo · lernt","aprender","Ich lerne Deutsch. · Aprendo alemão.","Verbos","A1"],
+["heißen","Verbo · heißt","chamar-se","Wie heißt du? · Como você se chama?","Verbos","A1"],
+["mögen","Verbo · mag · modal","gostar de","Ich mag Musik. · Gosto de música.","Verbos","A1"],
+["wollen","Verbo · will · modal","querer","Ich will schlafen. · Quero dormir.","Verbos","A1"],
+["können","Verbo · kann · modal","poder / conseguir","Ich kann schwimmen. · Consigo nadar.","Verbos","A1"],
+["müssen","Verbo · muss · modal","precisar / dever","Ich muss arbeiten. · Preciso trabalhar.","Verbos","A1"],
+["dürfen","Verbo · darf · modal","ter permissão","Darf ich? · Posso?","Verbos","A1"],
+["kochen","Verbo · kocht","cozinhar","Ich koche gern. · Gosto de cozinhar.","Verbos","A1"],
+["fahren","Verbo · fährt · stark","dirigir / viajar","Ich fahre Auto. · Dirijo.","Verbos","A1"],
+["fliegen","Verbo · fliegt · stark","voar","Ich fliege nach Berlin. · Vou de avião para Berlim.","Verbos","A1"],
+["laufen","Verbo · läuft · stark","correr / caminhar","Ich laufe jeden Tag. · Corro todo dia.","Verbos","A1"],
+["schwimmen","Verbo · schwimmt · stark","nadar","Ich schwimme gern. · Gosto de nadar.","Verbos","A1"],
+["tanzen","Verbo · tanzt","dançar","Ich tanze gern. · Gosto de dançar.","Verbos","A1"],
+["singen","Verbo · singt · stark","cantar","Ich singe im Chor. · Canto no coral.","Verbos","A1"],
+["das Haus","Substantivo · neutro · Häuser","a casa","Das Haus ist groß. · A casa é grande.","Substantivos","A1"],
+["die Wohnung","Substantivo · fem. · -en","o apartamento","Die Wohnung ist schön. · O ap. é bonito.","Substantivos","A1"],
+["die Schule","Substantivo · fem. · Schulen","a escola","Ich gehe zur Schule. · Vou à escola.","Substantivos","A1"],
+["das Buch","Substantivo · neutro · Bücher","o livro","Das Buch ist interessant. · O livro é interessante.","Substantivos","A1"],
+["der Mann","Substantivo · masc. · Männer","o homem","Der Mann ist nett. · O homem é simpático.","Substantivos","A1"],
+["die Frau","Substantivo · fem. · Frauen","a mulher / senhora","Die Frau lächelt. · A mulher sorri.","Substantivos","A1"],
+["das Kind","Substantivo · neutro · Kinder","a criança","Das Kind spielt. · A criança brinca.","Substantivos","A1"],
+["der Tag","Substantivo · masc. · Tage","o dia","Guten Tag! · Bom dia!","Substantivos","A1"],
+["die Nacht","Substantivo · fem. · Nächte","a noite","Gute Nacht! · Boa noite!","Substantivos","A1"],
+["das Wasser","Substantivo · neutro · (incontável)","a água","Ich möchte Wasser. · Quero água.","Substantivos","A1"],
+["das Geld","Substantivo · neutro · (incontável)","o dinheiro","Ich habe kein Geld. · Não tenho dinheiro.","Substantivos","A1"],
+["die Stadt","Substantivo · fem. · Städte","a cidade","Die Stadt ist schön. · A cidade é bonita.","Substantivos","A1"],
+["das Auto","Substantivo · neutro · Autos","o carro","Das Auto ist schnell. · O carro é rápido.","Substantivos","A1"],
+["der Zug","Substantivo · masc. · Züge","o trem","Der Zug kommt. · O trem está chegando.","Substantivos","A1"],
+["das Flugzeug","Substantivo · neutro · -e","o avião","Das Flugzeug landet. · O avião está pousando.","Substantivos","A1"],
+["der Bus","Substantivo · masc. · Busse","o ônibus","Ich nehme den Bus. · Pego o ônibus.","Substantivos","A1"],
+["das Essen","Substantivo · neutro · (incontável)","a comida","Das Essen ist lecker. · A comida é gostosa.","Substantivos","A1"],
+["das Brot","Substantivo · neutro · -e","o pão","Ich esse Brot. · Como pão.","Substantivos","A1"],
+["die Familie","Substantivo · fem. · -n","a família","Meine Familie ist groß. · Minha família é grande.","Substantivos","A1"],
+["der Vater","Substantivo · masc. · Väter","o pai","Mein Vater arbeitet. · Meu pai trabalha.","Substantivos","A1"],
+["die Mutter","Substantivo · fem. · Mütter","a mãe","Meine Mutter kocht gut. · Minha mãe cozinha bem.","Substantivos","A1"],
+["der Bruder","Substantivo · masc. · Brüder","o irmão","Mein Bruder ist jung. · Meu irmão é novo.","Substantivos","A1"],
+["die Schwester","Substantivo · fem. · -n","a irmã","Meine Schwester studiert. · Minha irmã estuda.","Substantivos","A1"],
+["das Jahr","Substantivo · neutro · -e","o ano","Das Jahr hat 12 Monate. · O ano tem 12 meses.","Substantivos","A1"],
+["die Sonne","Substantivo · fem. · -n","o sol","Die Sonne scheint. · O sol brilha.","Substantivos","A1"],
+["der Mond","Substantivo · masc. · -e","a lua","Der Mond ist groß. · A lua está grande.","Substantivos","A1"],
+["der Regen","Substantivo · masc. · (incontável)","a chuva","Es gibt Regen. · Vai chover.","Substantivos","A1"],
+["der Berg","Substantivo · masc. · -e","a montanha","Der Berg ist hoch. · A montanha é alta.","Substantivos","A1"],
+["das Meer","Substantivo · neutro · -e","o mar","Das Meer ist blau. · O mar é azul.","Substantivos","A1"],
+["der Wald","Substantivo · masc. · Wälder","a floresta","Der Wald ist dunkel. · A floresta é escura.","Substantivos","A1"],
+["der Hund","Substantivo · masc. · -e","o cachorro","Der Hund bellt. · O cachorro late.","Substantivos","A1"],
+["die Katze","Substantivo · fem. · -n","o gato","Die Katze schläft. · O gato dorme.","Substantivos","A1"],
+["der Kopf","Substantivo · masc. · Köpfe","a cabeça","Mein Kopf tut weh. · Minha cabeça dói.","Substantivos","A1"],
+["das Auge","Substantivo · neutro · -n","o olho","Die Augen sind blau. · Os olhos são azuis.","Substantivos","A1"],
+["der Mund","Substantivo · masc. · Münder","a boca","Mach den Mund auf! · Abra a boca!","Substantivos","A1"],
+["die Hand","Substantivo · fem. · Hände","a mão","Gib mir deine Hand. · Me dê sua mão.","Substantivos","A1"],
+["das Herz","Substantivo · neutro · -en","o coração","Mein Herz schlägt. · Meu coração bate.","Substantivos","A1"],
+["groß","Adjetivo","grande / alto","Das Haus ist groß. · A casa é grande.","Adjetivos","A1"],
+["klein","Adjetivo","pequeno / baixo","Das Kind ist klein. · A criança é pequena.","Adjetivos","A1"],
+["gut","Adjetivo","bom / bem","Das ist gut. · Isso é bom.","Adjetivos","A1"],
+["schlecht","Adjetivo","ruim / mau","Das Wetter ist schlecht. · O tempo está ruim.","Adjetivos","A1"],
+["neu","Adjetivo","novo","Das ist neu. · Isso é novo.","Adjetivos","A1"],
+["alt","Adjetivo","velho / antigo","Das Haus ist alt. · A casa é velha.","Adjetivos","A1"],
+["schnell","Adjetivo","rápido","Das Auto ist schnell. · O carro é rápido.","Adjetivos","A1"],
+["kalt","Adjetivo","frio","Es ist kalt. · Está frio.","Adjetivos","A1"],
+["warm","Adjetivo","quente / morno","Das Wasser ist warm. · A água está morna.","Adjetivos","A1"],
+["schön","Adjetivo","bonito / belo","Das ist schön. · Isso é bonito.","Adjetivos","A1"],
+["jung","Adjetivo","jovem","Er ist jung. · Ele é jovem.","Adjetivos","A1"],
+["voll","Adjetivo","cheio / lotado","Der Bus ist voll. · O ônibus está lotado.","Adjetivos","A1"],
+["leer","Adjetivo","vazio","Das Glas ist leer. · O copo está vazio.","Adjetivos","A1"],
+["billig","Adjetivo","barato","Das ist billig. · Isso é barato.","Adjetivos","A1"],
+["teuer","Adjetivo","caro","Das ist teuer. · Isso é caro.","Adjetivos","A1"],
+["müde","Adjetivo","cansado","Ich bin müde. · Estou cansado.","Adjetivos","A1"],
+["gestern","Advérbio temporal","ontem","Ich war gestern krank. · Estive doente ontem.","Advérbios","A1"],
+["heute","Advérbio temporal","hoje","Was machst du heute? · O que você faz hoje?","Advérbios","A1"],
+["morgen","Advérbio temporal","amanhã","Bis morgen! · Até amanhã!","Advérbios","A1"],
+["immer","Advérbio","sempre","Ich bin immer pünktlich. · Sou sempre pontual.","Advérbios","A1"],
+["nie","Advérbio","nunca","Ich komme nie zu spät. · Nunca chego atrasado.","Advérbios","A1"],
+["manchmal","Advérbio","às vezes","Manchmal bin ich müde. · Às vezes estou cansado.","Advérbios","A1"],
+["oft","Advérbio","frequentemente","Ich gehe oft spazieren. · Frequentemente vou caminhar.","Advérbios","A1"],
+["noch","Advérbio","ainda","Ich bin noch hier. · Ainda estou aqui.","Advérbios","A1"],
+["schon","Advérbio","já","Ich bin schon fertig. · Já terminei.","Advérbios","A1"],
+["verstehen","Verbo · versteht · stark","entender","Ich verstehe dich. · Eu te entendo.","Verbos","A2"],
+["vergessen","Verbo · vergisst · stark","esquecer","Ich vergesse nie. · Nunca esqueço.","Verbos","A2"],
+["helfen","Verbo · hilft · stark · Dat.","ajudar","Kann ich helfen? · Posso ajudar?","Verbos","A2"],
+["glauben","Verbo · glaubt","acreditar / achar","Ich glaube dir. · Acredito em você.","Verbos","A2"],
+["denken","Verbo · denkt · misto","pensar","Ich denke oft. · Penso bastante.","Verbos","A2"],
+["fragen","Verbo · fragt","perguntar","Darf ich fragen? · Posso perguntar?","Verbos","A2"],
+["antworten","Verbo · antwortet · Dat.","responder","Bitte antworten! · Por favor, responda!","Verbos","A2"],
+["brauchen","Verbo · braucht","precisar de","Ich brauche Hilfe. · Preciso de ajuda.","Verbos","A2"],
+["zeigen","Verbo · zeigt","mostrar","Zeig mir das! · Me mostre isso!","Verbos","A2"],
+["öffnen","Verbo · öffnet","abrir","Öffne die Tür! · Abra a porta!","Verbos","A2"],
+["schließen","Verbo · schließt · stark","fechar","Schließ das Fenster. · Feche a janela.","Verbos","A2"],
+["warten","Verbo · wartet · auf + Akk.","esperar","Ich warte auf dich. · Espero por você.","Verbos","A2"],
+["suchen","Verbo · sucht","procurar","Ich suche meinen Schlüssel. · Procuro minha chave.","Verbos","A2"],
+["finden","Verbo · findet · stark","encontrar / achar","Ich finde es toll. · Acho incrível.","Verbos","A2"],
+["bezahlen","Verbo · bezahlt","pagar","Ich bezahle mit Karte. · Pago com cartão.","Verbos","A2"],
+["beginnen","Verbo · beginnt · stark","começar","Wann beginnt es? · Quando começa?","Verbos","A2"],
+["reisen","Verbo · reist","viajar","Ich reise gern. · Gosto de viajar.","Verbos","A2"],
+["leben","Verbo · lebt","viver / morar","Ich lebe in Berlin. · Moro em Berlim.","Verbos","A2"],
+["stehen","Verbo · steht · stark","estar de pé","Ich stehe an der Tür. · Estou na porta.","Verbos","A2"],
+["sitzen","Verbo · sitzt · stark","estar sentado","Ich sitze am Tisch. · Estou sentado à mesa.","Verbos","A2"],
+["nehmen","Verbo · nimmt · stark","pegar / tomar","Ich nehme den Bus. · Pego o ônibus.","Verbos","A2"],
+["geben","Verbo · gibt · stark","dar","Gib mir das bitte. · Me dê isso, por favor.","Verbos","A2"],
+["treffen","Verbo · trifft · stark","encontrar / reunir-se","Wir treffen uns. · Nos encontramos.","Verbos","A2"],
+["kennen","Verbo · kennt · misto","conhecer","Ich kenne ihn. · O conheço.","Verbos","A2"],
+["passen","Verbo · passt","servir / caber","Das passt mir nicht. · Isso não me serve.","Verbos","A2"],
+["fallen","Verbo · fällt · stark","cair","Das Kind ist gefallen. · A criança caiu.","Verbos","A2"],
+["klappen","Verbo · klappt","funcionar / dar certo","Hat es geklappt? · Deu certo?","Verbos","A2"],
+["die Arbeit","Substantivo · fem. · -en","o trabalho","Die Arbeit ist fertig. · O trabalho está pronto.","Substantivos","A2"],
+["der Freund","Substantivo · masc. · -e","o amigo / namorado","Er ist mein bester Freund. · É meu melhor amigo.","Substantivos","A2"],
+["die Sprache","Substantivo · fem. · -n","a língua / idioma","Welche Sprache sprichst du? · Que idioma você fala?","Substantivos","A2"],
+["die Reise","Substantivo · fem. · -n","a viagem","Die Reise war toll. · A viagem foi ótima.","Substantivos","A2"],
+["der Arzt","Substantivo · masc. · Ärzte","o médico","Ich gehe zum Arzt. · Vou ao médico.","Substantivos","A2"],
+["das Problem","Substantivo · neutro · -e","o problema","Kein Problem! · Sem problema!","Substantivos","A2"],
+["die Idee","Substantivo · fem. · -n","a ideia","Das ist eine gute Idee. · Boa ideia!","Substantivos","A2"],
+["das Hobby","Substantivo · neutro · -s","o hobby","Was ist dein Hobby? · Qual é o seu hobby?","Substantivos","A2"],
+["der Sport","Substantivo · masc. · (incontável)","o esporte","Sport ist gesund. · Esporte é saudável.","Substantivos","A2"],
+["die Musik","Substantivo · fem. · (incontável)","a música","Ich liebe Musik. · Adoro música.","Substantivos","A2"],
+["die Frage","Substantivo · fem. · -n","a pergunta","Ich habe eine Frage. · Tenho uma pergunta.","Substantivos","A2"],
+["die Antwort","Substantivo · fem. · -en","a resposta","Die Antwort ist klar. · A resposta é clara.","Substantivos","A2"],
+["interessant","Adjetivo","interessante","Das ist interessant. · Isso é interessante.","Adjetivos","A2"],
+["langweilig","Adjetivo","chato / entediante","Das ist langweilig. · Isso é chato.","Adjetivos","A2"],
+["lustig","Adjetivo","engraçado / divertido","Das ist lustig! · Isso é engraçado!","Adjetivos","A2"],
+["freundlich","Adjetivo","amável / simpático","Er ist sehr freundlich. · Ele é muito simpático.","Adjetivos","A2"],
+["gesund","Adjetivo","saudável","Das ist gesund. · Isso é saudável.","Adjetivos","A2"],
+["krank","Adjetivo","doente","Ich bin krank. · Estou doente.","Adjetivos","A2"],
+["sauber","Adjetivo","limpo","Das Zimmer ist sauber. · O quarto está limpo.","Adjetivos","A2"],
+["fertig","Adjetivo","pronto / terminado","Ich bin fertig. · Estou pronto.","Adjetivos","A2"],
+["schwer","Adjetivo","pesado / difícil","Das ist schwer. · Isso é difícil.","Adjetivos","A2"],
+["leicht","Adjetivo","leve / fácil","Das ist leicht. · Isso é fácil.","Adjetivos","A2"],
+["pünktlich","Adjetivo","pontual","Ich bin immer pünktlich. · Sou sempre pontual.","Adjetivos","A2"],
+["fleißig","Adjetivo","trabalhador / dedicado","Sie ist sehr fleißig. · Ela é muito dedicada.","Adjetivos","A2"],
+["faul","Adjetivo","preguiçoso","Er ist faul. · Ele é preguiçoso.","Adjetivos","A2"],
+["außerdem","Advérbio","além disso","Außerdem ist es günstig. · Além disso, é barato.","Advérbios","A2"],
+["deshalb","Advérbio causal","por isso / portanto","Deshalb bin ich hier. · Por isso estou aqui.","Advérbios","A2"],
+["selten","Advérbio","raramente","Das passiert selten. · Isso raramente acontece.","Advérbios","A2"],
+["sofort","Advérbio","imediatamente","Ich komme sofort. · Chego imediatamente.","Advérbios","A2"],
+["gleich","Advérbio","logo / daqui a pouco","Ich komme gleich. · Chego logo.","Advérbios","A2"],
+["gerade","Advérbio","agora mesmo","Ich esse gerade. · Estou comendo agora.","Advérbios","A2"],
+["beweisen","Verbo · beweist · stark","provar / demonstrar","Das lässt sich beweisen. · Isso pode ser provado.","Verbos","B1"],
+["beibringen","Verbo · bringt bei · trennbar","ensinar / incutir","Er brachte mir Deutsch bei. · Ele me ensinou alemão.","Verbos","B1"],
+["erschaffen","Verbo · erschafft · stark","criar (algo novo)","Die Natur erschafft Schönheit. · A natureza cria beleza.","Verbos","B1"],
+["retten","Verbo · rettet","salvar / resgatar","Er hat mein Leben gerettet. · Ele salvou minha vida.","Verbos","B1"],
+["sterben","Verbo · stirbt · stark","morrer","Er starb jung. · Ele morreu jovem.","Verbos","B1"],
+["entscheiden","Verbo · entscheidet · stark","decidir","Du musst dich entscheiden. · Você precisa decidir.","Verbos","B1"],
+["erklären","Verbo · erklärt","explicar","Erkläre mir das bitte. · Me explique isso, por favor.","Verbos","B1"],
+["entwickeln","Verbo · entwickelt","desenvolver","Die Idee entwickelt sich. · A ideia se desenvolve.","Verbos","B1"],
+["versuchen","Verbo · versucht","tentar","Ich versuche es. · Vou tentar.","Verbos","B1"],
+["erreichen","Verbo · erreicht","alcançar / atingir","Ich will mein Ziel erreichen. · Quero atingir meu objetivo.","Verbos","B1"],
+["verlieren","Verbo · verliert · stark","perder","Ich habe verloren. · Eu perdi.","Verbos","B1"],
+["gewinnen","Verbo · gewinnt · stark","ganhar / vencer","Wer gewinnt? · Quem ganha?","Verbos","B1"],
+["kämpfen","Verbo · kämpft","lutar / combater","Er kämpft für seine Träume. · Ele luta por seus sonhos.","Verbos","B1"],
+["verändern","Verbo · verändert","mudar / transformar","Das verändert alles. · Isso muda tudo.","Verbos","B1"],
+["erinnern","Verbo · erinnert (sich an + Akk.)","lembrar / recordar","Ich erinnere mich. · Me lembro.","Verbos","B1"],
+["erhalten","Verbo · erhält · stark","receber / obter","Ich habe einen Brief erhalten. · Recebi uma carta.","Verbos","B1"],
+["besuchen","Verbo · besucht","visitar","Ich besuche meine Eltern. · Visito meus pais.","Verbos","B1"],
+["feiern","Verbo · feiert","comemorar / festejar","Wir feiern heute. · Comemoramos hoje.","Verbos","B1"],
+["wählen","Verbo · wählt","escolher / votar","Ich wähle Variante A. · Escolho a opção A.","Verbos","B1"],
+["schützen","Verbo · schützt","proteger","Ich schütze meine Familie. · Protejo minha família.","Verbos","B1"],
+["unterstützen","Verbo · unterstützt","apoiar","Ich unterstütze dich. · Te apoio.","Verbos","B1"],
+["ablehnen","Verbo · lehnt ab · trennbar","rejeitar / recusar","Ich lehne das ab. · Rejeito isso.","Verbos","B1"],
+["annehmen","Verbo · nimmt an · trennbar · stark","aceitar / supor","Ich nehme an, dass... · Suponho que...","Verbos","B1"],
+["darstellen","Verbo · stellt dar · trennbar","representar / apresentar","Er stellt das Problem dar. · Ele apresenta o problema.","Verbos","B1"],
+["stattfinden","Verbo · findet statt · trennbar · stark","acontecer / realizar-se","Das Konzert findet statt. · O show acontece.","Verbos","B1"],
+["der Krieg","Substantivo · masc. · -e","a guerra","Der Krieg ist grausam. · A guerra é cruel.","Substantivos","B1"],
+["die Schuld","Substantivo · fem. · (sing.)","a culpa / a dívida","Es ist meine Schuld. · É minha culpa.","Substantivos","B1"],
+["das Ziel","Substantivo · neutro · -e","o objetivo / a meta","Mein Ziel ist klar. · Meu objetivo é claro.","Substantivos","B1"],
+["die Lösung","Substantivo · fem. · -en","a solução","Wir brauchen eine Lösung. · Precisamos de uma solução.","Substantivos","B1"],
+["der Grund","Substantivo · masc. · Gründe","o motivo / a razão","Was ist der Grund? · Qual é o motivo?","Substantivos","B1"],
+["die Möglichkeit","Substantivo · fem. · -en","a possibilidade","Es gibt viele Möglichkeiten. · Há muitas possibilidades.","Substantivos","B1"],
+["die Erfahrung","Substantivo · fem. · -en","a experiência","Das ist eine neue Erfahrung. · É uma nova experiência.","Substantivos","B1"],
+["die Gesellschaft","Substantivo · fem. · -en","a sociedade","Die Gesellschaft verändert sich. · A sociedade muda.","Substantivos","B1"],
+["die Wahrheit","Substantivo · fem. · -en","a verdade","Die Wahrheit tut weh. · A verdade dói.","Substantivos","B1"],
+["die Hoffnung","Substantivo · fem. · -en","a esperança","Ich verliere die Hoffnung nicht. · Não perco a esperança.","Substantivos","B1"],
+["die Angst","Substantivo · fem. · Ängste","o medo / a ansiedade","Ich habe Angst. · Estou com medo.","Substantivos","B1"],
+["der Erfolg","Substantivo · masc. · -e","o sucesso","Der Erfolg kommt. · O sucesso vem.","Substantivos","B1"],
+["die Kraft","Substantivo · fem. · Kräfte","a força / a energia","Ich habe keine Kraft mehr. · Não tenho mais força.","Substantivos","B1"],
+["der Traum","Substantivo · masc. · Träume","o sonho","Mein Traum ist groß. · Meu sonho é grande.","Substantivos","B1"],
+["die Freiheit","Substantivo · fem. · (sing.)","a liberdade","Freiheit ist wertvoll. · A liberdade é valiosa.","Substantivos","B1"],
+["das Vertrauen","Substantivo · neutro · (incontável)","a confiança","Vertrauen ist wichtig. · Confiança é importante.","Substantivos","B1"],
+["wichtig","Adjetivo","importante","Das ist sehr wichtig. · Isso é muito importante.","Adjetivos","B1"],
+["möglich","Adjetivo","possível","Ist das möglich? · Isso é possível?","Adjetivos","B1"],
+["schwierig","Adjetivo","difícil","Das ist sehr schwierig. · Isso é muito difícil.","Adjetivos","B1"],
+["notwendig","Adjetivo","necessário","Das ist notwendig. · Isso é necessário.","Adjetivos","B1"],
+["gefährlich","Adjetivo","perigoso","Das ist gefährlich! · Isso é perigoso!","Adjetivos","B1"],
+["mutig","Adjetivo","corajoso","Sei mutig! · Seja corajoso!","Adjetivos","B1"],
+["traurig","Adjetivo","triste","Ich bin traurig. · Estou triste.","Adjetivos","B1"],
+["stolz","Adjetivo · auf + Akk.","orgulhoso","Ich bin stolz auf dich. · Tenho orgulho de você.","Adjetivos","B1"],
+["ruhig","Adjetivo","calmo / tranquilo","Bleib ruhig! · Fique calmo!","Adjetivos","B1"],
+["ehrlich","Adjetivo","honesto","Sei ehrlich! · Seja honesto!","Adjetivos","B1"],
+["bereit","Adjetivo","pronto / disposto","Ich bin bereit. · Estou pronto.","Adjetivos","B1"],
+["zuverlässig","Adjetivo","confiável","Er ist zuverlässig. · Ele é confiável.","Adjetivos","B1"],
+["konkret","Adjetivo","concreto / específico","Sei konkret! · Seja específico!","Adjetivos","B1"],
+["typisch","Adjetivo","típico","Das ist typisch. · Isso é típico.","Adjetivos","B1"],
+["relevant","Adjetivo","relevante","Das ist relevant. · Isso é relevante.","Adjetivos","B1"],
+["theoretisch","Adjetivo","teórico","Das ist theoretisch möglich. · É teoricamente possível.","Adjetivos","B1"],
+["jedoch","Advérbio/Konnektor","porém / no entanto","Das ist jedoch falsch. · No entanto, isso é errado.","Advérbios","B1"],
+["dennoch","Advérbio","mesmo assim / apesar disso","Er kam dennoch. · Ele veio mesmo assim.","Advérbios","B1"],
+["trotzdem","Advérbio","apesar disso / mesmo assim","Trotzdem mache ich es. · Mesmo assim farei.","Advérbios","B1"],
+["schließlich","Advérbio","por fim / afinal","Schließlich kam er. · Afinal, ele veio.","Advérbios","B1"],
+["inzwischen","Advérbio","enquanto isso / já agora","Er ist inzwischen da. · Ele já chegou.","Advérbios","B1"],
+["bereits","Advérbio","já / anteriormente","Ich habe bereits gegessen. · Já comi.","Advérbios","B1"],
+["kaum","Advérbio","mal / quase não","Ich kann kaum schlafen. · Mal consigo dormir.","Advérbios","B1"],
+["dagegen","Advérbio","por outro lado","Dagegen bin ich. · Sou contra isso.","Advérbios","B1"],
+["zunächst","Advérbio","primeiramente / no início","Zunächst müssen wir planen. · Primeiro precisamos planejar.","Advérbios","B1"],
+["anschließend","Advérbio","em seguida","Anschließend essen wir. · Em seguida comemos.","Advérbios","B1"],
+["insgesamt","Advérbio","no total / no geral","Insgesamt war es gut. · No geral foi bom.","Advérbios","B1"],
+["daher","Advérbio causal","por isso / daí","Daher muss ich gehen. · Por isso preciso ir.","Advérbios","B1"],
+["überzeugen","Verbo · überzeugt","convencer","Er überzeugte mich. · Ele me convenceu.","Verbos","B2"],
+["behaupten","Verbo · behauptet","afirmar / alegar","Er behauptet das. · Ele afirma isso.","Verbos","B2"],
+["vermeiden","Verbo · vermeidet · stark","evitar","Ich vermeide Stress. · Evito estresse.","Verbos","B2"],
+["beurteilen","Verbo · beurteilt","avaliar / julgar","Wie beurteilst du das? · Como você avalia isso?","Verbos","B2"],
+["untersuchen","Verbo · untersucht","investigar / examinar","Wir untersuchen den Fall. · Investigamos o caso.","Verbos","B2"],
+["zusammenfassen","Verbo · fasst zusammen · trennbar","resumir","Fasse es bitte zusammen. · Por favor, resuma.","Verbos","B2"],
+["vorschlagen","Verbo · schlägt vor · trennbar · stark","propor / sugerir","Ich schlage vor, dass... · Proponho que...","Verbos","B2"],
+["anpassen","Verbo · passt an · trennbar","adaptar / ajustar","Wir müssen uns anpassen. · Precisamos nos adaptar.","Verbos","B2"],
+["widersprechen","Verbo · widerspricht · stark · Dat.","contradizer / discordar","Ich muss widersprechen. · Preciso discordar.","Verbos","B2"],
+["betonen","Verbo · betont","enfatizar / destacar","Ich betone das noch mal. · Enfatizo isso novamente.","Verbos","B2"],
+["begründen","Verbo · begründet","justificar","Begründe deine Meinung. · Justifique sua opinião.","Verbos","B2"],
+["ausdrücken","Verbo · drückt aus · trennbar","expressar","Ich drücke meine Meinung aus. · Expresso minha opinião.","Verbos","B2"],
+["analysieren","Verbo · analysiert","analisar","Wir analysieren die Daten. · Analisamos os dados.","Verbos","B2"],
+["hinweisen","Verbo · weist hin · trennbar · stark","apontar para / indicar","Ich weise darauf hin. · Aponto para isso.","Verbos","B2"],
+["optimieren","Verbo · optimiert","otimizar","Wir optimieren den Prozess. · Otimizamos o processo.","Verbos","B2"],
+["die Auswirkung","Substantivo · fem. · -en","o impacto / o efeito","Was sind die Auswirkungen? · Quais são os impactos?","Substantivos","B2"],
+["der Einfluss","Substantivo · masc. · Einflüsse","a influência","Er hat großen Einfluss. · Ele tem grande influência.","Substantivos","B2"],
+["die Verantwortung","Substantivo · fem. · (incontável)","a responsabilidade","Ich übernehme die Verantwortung. · Assumo a responsabilidade.","Substantivos","B2"],
+["die Perspektive","Substantivo · fem. · -n","a perspectiva","Aus meiner Perspektive... · Da minha perspectiva...","Substantivos","B2"],
+["die Konsequenz","Substantivo · fem. · -en","a consequência","Das hat Konsequenzen. · Isso tem consequências.","Substantivos","B2"],
+["die Fähigkeit","Substantivo · fem. · -en","a habilidade / a capacidade","Das ist eine wichtige Fähigkeit. · É uma habilidade importante.","Substantivos","B2"],
+["der Fortschritt","Substantivo · masc. · -e","o progresso","Der Fortschritt ist schnell. · O progresso é rápido.","Substantivos","B2"],
+["die Herausforderung","Substantivo · fem. · -en","o desafio","Das ist eine Herausforderung. · Isso é um desafio.","Substantivos","B2"],
+["der Vorteil","Substantivo · masc. · -e","a vantagem","Das ist ein Vorteil. · Isso é uma vantagem.","Substantivos","B2"],
+["der Nachteil","Substantivo · masc. · -e","a desvantagem","Was ist der Nachteil? · Qual é a desvantagem?","Substantivos","B2"],
+["die Grundlage","Substantivo · fem. · -n","a base / o fundamento","Das ist die Grundlage. · Essa é a base.","Substantivos","B2"],
+["der Ansatz","Substantivo · masc. · Ansätze","a abordagem","Das ist ein guter Ansatz. · Essa é uma boa abordagem.","Substantivos","B2"],
+["die Tendenz","Substantivo · fem. · -en","a tendência","Es gibt eine Tendenz. · Há uma tendência.","Substantivos","B2"],
+["nachhaltig","Adjetivo","sustentável","Das ist nachhaltig. · Isso é sustentável.","Adjetivos","B2"],
+["eindeutig","Adjetivo","claro / inequívoco","Das ist eindeutig. · Isso é inequívoco.","Adjetivos","B2"],
+["wesentlich","Adjetivo","essencial","Das ist wesentlich. · Isso é essencial.","Adjetivos","B2"],
+["erheblich","Adjetivo","considerável","Das ist erheblich. · Isso é considerável.","Adjetivos","B2"],
+["objektiv","Adjetivo","objetivo / imparcial","Sei objektiv! · Seja objetivo!","Adjetivos","B2"],
+["subjektiv","Adjetivo","subjetivo","Das ist subjektiv. · Isso é subjetivo.","Adjetivos","B2"],
+["umstritten","Adjetivo","controverso","Das ist umstritten. · Isso é controverso.","Adjetivos","B2"],
+["effektiv","Adjetivo","efetivo / eficaz","Das ist effektiv. · Isso é eficaz.","Adjetivos","B2"],
+["innovativ","Adjetivo","inovador","Das ist innovativ. · Isso é inovador.","Adjetivos","B2"],
+["allerdings","Advérbio","entretanto / contudo","Allerdings ist das teuer. · Contudo, isso é caro.","Advérbios","B2"],
+["hingegen","Konnektor","ao contrário / ao passo que","Er schläft, ich hingegen lerne. · Ele dorme; eu estudo.","Advérbios","B2"],
+["insbesondere","Advérbio","especialmente / sobretudo","Insbesondere das war wichtig. · Sobretudo isso foi importante.","Advérbios","B2"],
+["einerseits","Konnektor","por um lado","Einerseits ist es gut... · Por um lado é bom...","Advérbios","B2"],
+["andererseits","Konnektor","por outro lado","...andererseits ist es teuer. · ...por outro lado é caro.","Advérbios","B2"],
+["folglich","Konnektor","consequentemente","Folglich ist das falsch. · Consequentemente, está errado.","Advérbios","B2"],
+["prägen","Verbo · prägt","marcar / cunhar / moldar","Das hat mich geprägt. · Isso me marcou.","Verbos","C1"],
+["anstreben","Verbo · strebt an · trennbar","aspirar / almejar","Ich strebe Exzellenz an. · Aspiro à excelência.","Verbos","C1"],
+["abwägen","Verbo · wägt ab · trennbar","ponderar / pesar (prós e contras)","Ich wäge die Optionen ab. · Pondero as opções.","Verbos","C1"],
+["überwiegen","Verbo · überwiegt · stark","predominar / prevalecer","Die Vorteile überwiegen. · As vantagens predominam.","Verbos","C1"],
+["hervorrufen","Verbo · ruft hervor · trennbar","provocar / causar","Das ruft Probleme hervor. · Isso causa problemas.","Verbos","C1"],
+["veranschaulichen","Verbo · veranschaulicht","ilustrar / exemplificar","Er veranschaulicht das Konzept. · Ele exemplifica o conceito.","Verbos","C1"],
+["widerspiegeln","Verbo · widerspiegelt","refletir / espelhar","Das spiegelt die Realität wider. · Isso reflete a realidade.","Verbos","C1"],
+["die Nuance","Substantivo · fem. · -n","a nuance","Das ist eine wichtige Nuance. · Essa é uma nuance importante.","Substantivos","C1"],
+["die Tragweite","Substantivo · fem. · (sing.)","o alcance / a dimensão","Die Tragweite ist groß. · O alcance é grande.","Substantivos","C1"],
+["die Herausforderung","Substantivo · fem. · -en","o desafio (nível C1)","Eine ernste Herausforderung. · Um sério desafio.","Substantivos","C1"],
+["die Auseinandersetzung","Substantivo · fem. · -en","o debate / o embate","Eine sachliche Auseinandersetzung. · Um debate objetivo.","Substantivos","C1"],
+["der Stellenwert","Substantivo · masc. · -e","a importância relativa","Das hat einen hohen Stellenwert. · Isso tem grande importância.","Substantivos","C1"],
+["prägnant","Adjetivo","conciso / preciso","Das ist prägnant formuliert. · Está formulado de forma concisa.","Adjetivos","C1"],
+["plausibel","Adjetivo","plausível","Das ist plausibel. · Isso é plausível.","Adjetivos","C1"],
+["stringent","Adjetivo","rigoroso / coerente","Das Argument ist stringent. · O argumento é coerente.","Adjetivos","C1"],
+["komplex","Adjetivo","complexo","Das Thema ist komplex. · O tema é complexo.","Adjetivos","C1"],
+["kontraproduktiv","Adjetivo","contraproducente","Das ist kontraproduktiv. · Isso é contraproducente.","Adjetivos","C1"],
+["Meiner Meinung nach...","Expressão de opinião","Na minha opinião...","Meiner Meinung nach ist das falsch. · Na minha opinião, isso está errado.","Frases","B1"],
+["Das kommt darauf an.","Expressão","Depende.","Das kommt darauf an, was du meinst. · Depende do que você quer dizer.","Frases","B1"],
+["Es tut mir leid.","Expressão de desculpa","Sinto muito. / Me desculpe.","Es tut mir wirklich leid. · Sinto muito mesmo.","Frases","A2"],
+["Wie geht es Ihnen?","Fórmula de cortesia formal","Como vai o(a) senhor(a)?","Danke, gut. · Obrigado, bem.","Frases","A1"],
+["Im Großen und Ganzen...","Expressão · no geral","No geral...","Im Großen und Ganzen war es gut. · No geral foi bom.","Frases","B2"],
+["Einerseits... andererseits...","Estrutura argumentativa","Por um lado... por outro...","Einerseits ja, andererseits nein. · Por um lado sim, por outro não.","Frases","B2"],
+["Ich bin der Meinung, dass...","Expressão formal de opinião","Sou de opinião que...","Ich bin der Meinung, dass das stimmt. · Sou de opinião que isso está certo.","Frases","B1"],
+
+// === VOCABULÁRIO DE DIE VERWANDLUNG (KAFKA) + LITERATURA ALEMÃ ===
+
+// — SUBSTANTIVOS B1–B2 —
+["die Verwandlung","Substantivo fem. · pl: Verwandlungen","a transformação / a metamorfose","Seine Verwandlung war unglaublich. · Sua transformação foi incrível.","Substantivos","B1"],
+["das Ungeziefer","Substantivo neutro · sem plural usual","a praga / o inseto nocivo","Er wurde zu einem Ungeziefer. · Ele se transformou em uma praga.","Substantivos","B2"],
+["der Reisende","Substantivo masc. · adj. subst.","o viajante","Er war ein Reisender von Beruf. · Ele era um viajante de profissão.","Substantivos","B1"],
+["die Unruhe","Substantivo fem. · sem plural","a inquietação / a agitação","Eine große Unruhe erfasste ihn. · Uma grande inquietação tomou conta dele.","Substantivos","B2"],
+["der Schlaf","Substantivo masc. · sem plural","o sono","Er fiel in tiefen Schlaf. · Ele caiu em sono profundo.","Substantivos","A2"],
+["das Zimmer","Substantivo neutro · pl: Zimmer","o quarto / o cômodo","Er lag in seinem Zimmer. · Ele estava deitado em seu quarto.","Substantivos","A1"],
+["die Decke","Substantivo fem. · pl: Decken","o teto / o cobertor","Er starrte an die Decke. · Ele encarou o teto.","Substantivos","A2"],
+["der Bauch","Substantivo masc. · pl: Bäuche","a barriga","Er lag auf dem Bauch. · Ele estava deitado de barriga.","Substantivos","A2"],
+["das Bein","Substantivo neutro · pl: Beine","a perna","Seine Beine waren dünn. · Suas pernas eram finas.","Substantivos","A1"],
+["die Tür","Substantivo fem. · pl: Türen","a porta","Er konnte die Tür nicht öffnen. · Ele não conseguia abrir a porta.","Substantivos","A1"],
+["das Schloss","Substantivo neutro · pl: Schlösser","a fechadura / o castelo","Das Schloss war verschlossen. · A fechadura estava trancada.","Substantivos","B1"],
+["der Lärm","Substantivo masc. · sem plural","o barulho / o ruído","Der Lärm weckte ihn auf. · O barulho o acordou.","Substantivos","A2"],
+["die Stimme","Substantivo fem. · pl: Stimmen","a voz","Eine bekannte Stimme rief ihn. · Uma voz conhecida o chamou.","Substantivos","A2"],
+["der Schritt","Substantivo masc. · pl: Schritte","o passo","Er hörte Schritte auf dem Flur. · Ele ouviu passos no corredor.","Substantivos","B1"],
+["der Flur","Substantivo masc. · pl: Flure","o corredor / o hall","Sie warteten im Flur. · Eles esperavam no corredor.","Substantivos","B1"],
+["die Angst","Substantivo fem. · pl: Ängste","o medo / a ansiedade","Angst überkam ihn plötzlich. · O medo o tomou de repente.","Substantivos","A2"],
+["die Erleichterung","Substantivo fem. · sem plural","o alívio","Mit Erleichterung hörte er es. · Com alívio ele ouviu isso.","Substantivos","B2"],
+["die Enttäuschung","Substantivo fem. · pl: Enttäuschungen","a decepção","Seine Enttäuschung war groß. · Sua decepção foi grande.","Substantivos","B1"],
+["die Erschöpfung","Substantivo fem. · sem plural","o esgotamento / a exaustão","Vor Erschöpfung konnte er kaum stehen. · De tão exausto ele mal conseguia ficar de pé.","Substantivos","B2"],
+["die Stille","Substantivo fem. · sem plural","o silêncio / a quietude","In der Stille der Nacht hörte er alles. · No silêncio da noite ele ouvia tudo.","Substantivos","B1"],
+["das Schweigen","Substantivo neutro · sem plural","o silêncio (ato de calar)","Sein Schweigen war beunruhigend. · Seu silêncio era perturbador.","Substantivos","B2"],
+["die Last","Substantivo fem. · pl: Lasten","o peso / o fardo","Er war eine Last für die Familie. · Ele era um fardo para a família.","Substantivos","B2"],
+["der Atem","Substantivo masc. · sem plural","o fôlego / a respiração","Sein Atem wurde flacher. · Sua respiração foi ficando mais superficial.","Substantivos","B1"],
+["das Geräusch","Substantivo neutro · pl: Geräusche","o ruído / o barulho","Ein seltsames Geräusch störte ihn. · Um barulho estranho o perturbou.","Substantivos","B1"],
+["der Staub","Substantivo masc. · sem plural","o pó / a poeira","Der Staub bedeckte alles. · O pó cobria tudo.","Substantivos","A2"],
+["die Wunde","Substantivo fem. · pl: Wunden","a ferida","Die Wunde heilte langsam. · A ferida cicatrizou lentamente.","Substantivos","B1"],
+["der Schmerz","Substantivo masc. · pl: Schmerzen","a dor","Er spürte starke Schmerzen. · Ele sentiu dores fortes.","Substantivos","A2"],
+["die Kraft","Substantivo fem. · pl: Kräfte","a força / a energia","Er hatte keine Kraft mehr. · Ele não tinha mais forças.","Substantivos","B1"],
+["die Schuld","Substantivo fem. · pl: Schulden","a culpa / a dívida","Er trug die Schuld allein. · Ele carregou a culpa sozinho.","Substantivos","B1"],
+["die Pflicht","Substantivo fem. · pl: Pflichten","o dever / a obrigação","Seine Pflicht war schwer. · Seu dever era pesado.","Substantivos","B1"],
+["der Verdienst","Substantivo masc. · pl: Verdienste","o ganho / o mérito","Sein Verdienst war wichtig für die Familie. · Seu ganho era importante para a família.","Substantivos","B2"],
+["der Kaufmann","Substantivo masc. · pl: Kaufleute","o comerciante","Er war ein fleißiger Kaufmann. · Ele era um comerciante trabalhador.","Substantivos","B2"],
+["die Firma","Substantivo fem. · pl: Firmen","a empresa","Die Firma erwartete ihn früh. · A empresa o esperava cedo.","Substantivos","A2"],
+["der Chef","Substantivo masc. · pl: Chefs","o chefe / o patrão","Sein Chef war streng. · Seu chefe era rigoroso.","Substantivos","B1"],
+["die Schulden","Substantivo fem. pl.","as dívidas","Die Familie hatte Schulden. · A família tinha dívidas.","Substantivos","B1"],
+["das Mitleid","Substantivo neutro · sem plural","a compaixão / a piedade","Er erweckte kein Mitleid mehr. · Ele não mais despertava compaixão.","Substantivos","B2"],
+["die Hoffnung","Substantivo fem. · pl: Hoffnungen","a esperança","Die Hoffnung schwand langsam. · A esperança foi diminuindo.","Substantivos","B1"],
+["die Verzweiflung","Substantivo fem. · sem plural","o desespero","Verzweiflung ergriff ihn. · O desespero tomou conta dele.","Substantivos","B2"],
+["der Ausweg","Substantivo masc. · pl: Auswege","a saída / a solução","Es gab keinen Ausweg. · Não havia saída.","Substantivos","B2"],
+["das Schicksal","Substantivo neutro · pl: Schicksale","o destino / o fado","Sein Schicksal war besiegelt. · Seu destino estava selado.","Substantivos","B2"],
+["die Einsamkeit","Substantivo fem. · sem plural","a solidão","Er litt unter großer Einsamkeit. · Ele sofria de grande solidão.","Substantivos","B1"],
+["die Gesellschaft","Substantivo fem. · pl: Gesellschaften","a sociedade / a companhia","Er mied die Gesellschaft anderer. · Ele evitava a companhia de outros.","Substantivos","B1"],
+["das Bewusstsein","Substantivo neutro · sem plural","a consciência","Das Bewusstsein kehrte zurück. · A consciência voltou.","Substantivos","C1"],
+["der Verdacht","Substantivo masc. · pl: Verdächte","a suspeita / a desconfiança","Ein Verdacht stieg in ihm auf. · Uma suspeita surgiu nele.","Substantivos","B2"],
+["die Erkenntnis","Substantivo fem. · pl: Erkenntnisse","o reconhecimento / a percepção","Diese Erkenntnis traf ihn hart. · Essa percepção o atingiu forte.","Substantivos","C1"],
+["das Elend","Substantivo neutro · sem plural","a miséria / a penúria","Er sah sein Elend klar. · Ele via claramente sua miséria.","Substantivos","B2"],
+["die Qual","Substantivo fem. · pl: Qualen","a agonia / o tormento","Qual und Schmerz plagten ihn. · Agonia e dor o atormentavam.","Substantivos","C1"],
+["der Ekel","Substantivo masc. · sem plural","o nojo / o repúdio","Ekel erfasste die anderen. · O nojo tomou conta dos outros.","Substantivos","B2"],
+["die Scham","Substantivo fem. · sem plural","a vergonha","Scham überwältigte ihn. · A vergonha o dominou.","Substantivos","B2"],
+["die Fürsorge","Substantivo fem. · sem plural","o cuidado / o zelo","Die Fürsorge seiner Schwester rührte ihn. · O cuidado de sua irmã o comoveu.","Substantivos","C1"],
+["der Verfall","Substantivo masc. · sem plural","a decadência / o declínio","Sein Verfall ging schnell. · Seu declínio foi rápido.","Substantivos","C1"],
+
+// — VERBOS B1–C1 —
+["erwachen","Verbo intrans. · ist erwacht","acordar / despertar","Er erwachte früh am Morgen. · Ele acordou cedo de manhã.","Verbos","B1"],
+["verwandeln","Verbo trans. · hat verwandelt","transformar / metamorfosear","Er wurde in ein Tier verwandelt. · Ele foi transformado em um animal.","Verbos","B1"],
+["kriechen","Verbo intrans. irreg. · ist gekrochen","rastejar / engatinhar","Er kroch langsam über den Boden. · Ele rastejou lentamente pelo chão.","Verbos","B2"],
+["klettern","Verbo intrans. · ist geklettert","escalar / trepar","Er kletterte an der Wand hoch. · Ele trepou pela parede acima.","Verbos","B1"],
+["stürzen","Verbo intrans. · ist gestürzt","cair / tombar","Er stürzte vom Schrank herunter. · Ele caiu do armário.","Verbos","B2"],
+["erschrecken","Verbo intrans. irreg. · ist erschrocken","assustar-se / levar um susto","Sie erschrak beim Anblick. · Ela se assustou ao vê-lo.","Verbos","B1"],
+["flüstern","Verbo intrans./trans. · hat geflüstert","sussurrar / murmurar","Sie flüsterten miteinander. · Eles sussurravam entre si.","Verbos","B1"],
+["stöhnen","Verbo intrans. · hat gestöhnt","gemer / resmungar","Er stöhnte vor Schmerz. · Ele gemeu de dor.","Verbos","B2"],
+["zittern","Verbo intrans. · hat gezittert","tremer","Ihre Hände zitterten vor Angst. · Suas mãos tremiam de medo.","Verbos","B1"],
+["verbergen","Verbo trans. irreg. · hat verborgen","esconder / ocultar","Er versuchte sich zu verbergen. · Ele tentou se esconder.","Verbos","B2"],
+["beobachten","Verbo trans. · hat beobachtet","observar / vigiar","Sie beobachteten ihn heimlich. · Eles o observavam secretamente.","Verbos","B1"],
+["erkennen","Verbo trans. irreg. · hat erkannt","reconhecer / perceber","Er erkannte seine Lage. · Ele reconheceu sua situação.","Verbos","B1"],
+["verzichten","Verbo intrans. · hat verzichtet","abrir mão / renunciar","Er musste auf alles verzichten. · Ele teve que abrir mão de tudo.","Verbos","B2"],
+["leiden","Verbo intrans. irreg. · hat gelitten","sofrer / padecer","Er litt in der Stille. · Ele sofria em silêncio.","Verbos","B1"],
+["ertragen","Verbo trans. irreg. · hat ertragen","suportar / aguentar","Sie konnte es kaum ertragen. · Ela mal conseguia suportar.","Verbos","B2"],
+["flüchten","Verbo intrans. · ist geflüchtet","fugir / escapar","Er versuchte zu flüchten. · Ele tentou fugir.","Verbos","B2"],
+["verdienen","Verbo trans. · hat verdient","ganhar / merecer","Er musste Geld verdienen. · Ele precisava ganhar dinheiro.","Verbos","A2"],
+["versorgen","Verbo trans. · hat versorgt","prover / cuidar de","Er versorgte die Familie. · Ele sustentava a família.","Verbos","B2"],
+["anpassen","Verbo trans./refl. · hat angepasst","adaptar / ajustar","Sie passten sich der Lage an. · Eles se adaptaram à situação.","Verbos","B2"],
+["aufgeben","Verbo trans. irreg. · hat aufgegeben","desistir / renunciar","Er gab alle Hoffnung auf. · Ele desistiu de toda esperança.","Verbos","B1"],
+["überwinden","Verbo trans. irreg. · hat überwunden","superar / vencer","Er konnte es nicht überwinden. · Ele não conseguia superar.","Verbos","B2"],
+["verachten","Verbo trans. · hat verachtet","desprezar / desdenhar","Sie verachteten ihn innerlich. · Eles o desprezavam interiormente.","Verbos","C1"],
+["meiden","Verbo trans. irreg. · hat gemieden","evitar / esquivar-se de","Er mied jeden Kontakt. · Ele evitava qualquer contato.","Verbos","B2"],
+["starren","Verbo intrans. · hat gestarrt","encarar / fitar","Er starrte an die Wand. · Ele ficou encarando a parede.","Verbos","B2"],
+["schleichen","Verbo intrans. irreg. · ist geschlichen","andar sorrateiramente / esgueirar-se","Er schlich durch den Flur. · Ele se esgueirou pelo corredor.","Verbos","C1"],
+["hauchen","Verbo intrans. · hat gehaucht","soprar levemente / murmurar","Er hauchte kaum hörbar. · Ele murmurou de forma quase inaudível.","Verbos","C1"],
+["erlöschen","Verbo intrans. irreg. · ist erloschen","apagar-se / extinguir-se","Das Licht seiner Augen erlosch. · A luz de seus olhos se apagou.","Verbos","C1"],
+["quälen","Verbo trans. · hat gequält","torturar / atormentar","Gedanken quälten ihn nachts. · Pensamentos o atormentavam à noite.","Verbos","B2"],
+["anstarren","Verbo trans. · hat angestarrt","encarar fixamente","Alle starrten ihn an. · Todos o encaravam fixamente.","Verbos","B2"],
+["sich schämen","Verbo refl. · hat sich geschämt","ter vergonha / envergonhar-se","Er schämte sich sehr. · Ele ficou muito envergonhado.","Verbos","B1"],
+["verblassen","Verbo intrans. · ist verblasst","desvanecer / desbotar","Die Erinnerung verblasste. · A memória foi desvanecendo.","Verbos","C1"],
+["kauern","Verbo intrans. · hat gekauert","agachar-se / encolher-se","Er kauerte in der Ecke. · Ele se encolheu no canto.","Verbos","C1"],
+["umherirren","Verbo intrans. · ist umhergeirrt","vagar / perambular","Er irrte umher ohne Ziel. · Ele vagava sem destino.","Verbos","C1"],
+["ersticken","Verbo intrans. · ist erstickt","sufocar / asfixiar","Er drohte zu ersticken. · Ele estava prestes a sufocar.","Verbos","B2"],
+["entscheiden","Verbo trans. irreg. · hat entschieden","decidir","Sie mussten sich entscheiden. · Eles precisavam se decidir.","Verbos","A2"],
+["vertrauen","Verbo intrans. · hat vertraut","confiar","Er vertraute niemandem mehr. · Ele não confiava mais em ninguém.","Verbos","B1"],
+
+// — ADJETIVOS B1–C1 —
+["ungeheuer","Adjetivo","imenso / monstruoso","Er hatte ungeheuere Angst. · Ele tinha um medo imenso.","Adjetivos","B2"],
+["seltsam","Adjetivo","estranho / peculiar","Die Lage war seltsam. · A situação era estranha.","Adjetivos","B1"],
+["merkwürdig","Adjetivo","curioso / estranho","Sein Verhalten war merkwürdig. · Seu comportamento era estranho.","Adjetivos","B1"],
+["hilflos","Adjetivo","indefeso / desamparado","Er fühlte sich hilflos. · Ele se sentia desamparado.","Adjetivos","B1"],
+["mühsam","Adjetivo","penoso / trabalhoso","Es war eine mühsame Arbeit. · Era um trabalho penoso.","Adjetivos","B2"],
+["ängstlich","Adjetivo","ansioso / medroso","Sie war ängstlich und besorgt. · Ela estava ansiosa e preocupada.","Adjetivos","B1"],
+["beunruhigend","Adjetivo","perturbador / preocupante","Sein Zustand war beunruhigend. · Seu estado era preocupante.","Adjetivos","B2"],
+["erschöpft","Adjetivo · Part. II de erschöpfen","esgotado / exausto","Er war völlig erschöpft. · Ele estava completamente esgotado.","Adjetivos","B1"],
+["gleichgültig","Adjetivo","indiferente / apático","Sie wurden ihm gegenüber gleichgültig. · Eles ficaram indiferentes a ele.","Adjetivos","B2"],
+["stumm","Adjetivo","mudo / silencioso","Er blieb stumm und reglos. · Ele ficou mudo e imóvel.","Adjetivos","B2"],
+["flach","Adjetivo","plano / superficial","Sein Atem war flach. · Sua respiração era superficial.","Adjetivos","B1"],
+["kahl","Adjetivo","careca / nu / pelado","Die Wände waren kahl und leer. · As paredes estavam nuas e vazias.","Adjetivos","B2"],
+["vergeblich","Adjetivo","inútil / vão / em vão","Alle Versuche waren vergeblich. · Todas as tentativas foram em vão.","Adjetivos","B2"],
+["unbeweglich","Adjetivo","imóvel / inerte","Er lag unbeweglich da. · Ele ficou lá imóvel.","Adjetivos","B2"],
+["wehrlos","Adjetivo","indefeso / sem defesa","Er war völlig wehrlos. · Ele estava completamente indefeso.","Adjetivos","C1"],
+["verzweifelt","Adjetivo · Part. II de verzweifeln","desesperado","Sie war verzweifelt und weinte. · Ela estava desesperada e chorava.","Adjetivos","B2"],
+["geduldlos","Adjetivo","impaciente","Er wurde geduldlos mit der Zeit. · Ele foi ficando impaciente.","Adjetivos","B2"],
+["abweisend","Adjetivo","rejeitor / distante","Ihr Blick war abweisend. · Seu olhar era distante.","Adjetivos","C1"],
+["unheimlich","Adjetivo","sinistro / perturbador / assustador","Die Stille war unheimlich. · O silêncio era sinistro.","Adjetivos","B2"],
+["kläglich","Adjetivo","lamentável / miserável","Sein Ende war kläglich. · Seu fim foi lamentável.","Adjetivos","C1"],
+["ohnmächtig","Adjetivo","impotente / desmaiado","Er fiel ohnmächtig zu Boden. · Ele desmaiou e caiu ao chão.","Adjetivos","B2"],
+["empfindlich","Adjetivo","sensível / delicado","Er war sehr empfindlich geworden. · Ele havia se tornado muito sensível.","Adjetivos","B2"],
+
+// — ADVÉRBIOS E CONECTIVOS B1–C1 —
+["kaum","Advérbio","mal / dificilmente / quase não","Er konnte kaum atmen. · Ele mal conseguia respirar.","Advérbios","B1"],
+["dennoch","Advérbio · conector adversativo","porém / ainda assim / contudo","Er war müde, dennoch arbeitete er weiter. · Ele estava cansado, contudo continuou trabalhando.","Advérbios","B1"],
+["hingegen","Advérbio · conector contrastivo","por outro lado / ao contrário","Er schwieg, sie hingegen sprach viel. · Ele calava, ela por outro lado falava muito.","Advérbios","C1"],
+["inzwischen","Advérbio temporal","entretanto / enquanto isso","Inzwischen hatte sich alles verändert. · Enquanto isso tudo havia mudado.","Advérbios","B1"],
+["allmählich","Advérbio","gradualmente / aos poucos","Sie gewöhnten sich allmählich daran. · Eles foram se acostumando gradualmente.","Advérbios","B2"],
+["keineswegs","Advérbio","de forma alguma / absolutamente não","Er war keineswegs zufrieden. · Ele não estava de forma alguma satisfeito.","Advérbios","B2"],
+["schließlich","Advérbio","finalmente / por fim","Schließlich gaben sie auf. · Por fim eles desistiram.","Advérbios","B1"],
+["plötzlich","Advérbio","de repente / subitamente","Plötzlich hörte er Stimmen. · De repente ele ouviu vozes.","Advérbios","A2"],
+["gleichzeitig","Advérbio","simultaneamente / ao mesmo tempo","Er sprach und schrieb gleichzeitig. · Ele falava e escrevia ao mesmo tempo.","Advérbios","B1"],
+["offenbar","Advérbio","aparentemente / evidentemente","Offenbar hatte er Angst. · Aparentemente ele tinha medo.","Advérbios","B2"],
+["vermutlich","Advérbio","provavelmente / presumivelmente","Er war vermutlich krank. · Ele estava provavelmente doente.","Advérbios","B2"],
+["unweigerlich","Advérbio","inevitavelmente","Es kam unweigerlich zum Ende. · Chegou inevitavelmente ao fim.","Advérbios","C1"],
+["flüchtig","Adjetivo / Advérbio","de relance / fugitivo / superficial","Ein flüchtiger Blick genügte. · Um olhar de relance bastou.","Advérbios","B2"],
+["unablässig","Advérbio","incessantemente / sem parar","Er dachte unablässig darüber nach. · Ele pensava incessantemente nisso.","Advérbios","C1"],
+
+// — VOCABULÁRIO DO COTIDIANO / TRABALHO —
+["die Miete","Substantivo fem. · pl: Mieten","o aluguel","Die Miete war schon überfällig. · O aluguel já estava atrasado.","Substantivos","A2"],
+["die Schulter","Substantivo fem. · pl: Schultern","o ombro","Er zuckte mit den Schultern. · Ele deu de ombros.","Substantivos","A2"],
+["der Rücken","Substantivo masc. · pl: Rücken","as costas / o dorso","Rückenschmerzen plagten ihn. · Dores nas costas o atormentavam.","Substantivos","A2"],
+["der Hunger","Substantivo masc. · sem plural","a fome","Er litt großen Hunger. · Ele sofria de muita fome.","Substantivos","A1"],
+["der Durst","Substantivo masc. · sem plural","a sede","Durst quälte ihn in der Nacht. · A sede o atormentava à noite.","Substantivos","A1"],
+["die Müdigkeit","Substantivo fem. · sem plural","o cansaço / a fadiga","Müdigkeit übermannte ihn. · O cansaço o dominou.","Substantivos","B1"],
+["das Gehalt","Substantivo neutro · pl: Gehälter","o salário","Sein Gehalt war das Wichtigste. · Seu salário era o mais importante.","Substantivos","B1"],
+["die Reise","Substantivo fem. · pl: Reisen","a viagem","Früher reiste er oft. · Antes ele viajava com frequência.","Substantivos","A1"],
+["der Zug","Substantivo masc. · pl: Züge","o trem","Den Zug hatte er verpasst. · Ele havia perdido o trem.","Substantivos","A1"],
+["das Gepäck","Substantivo neutro · sem plural","a bagagem","Sein Gepäck stand noch bereit. · Sua bagagem ainda estava pronta.","Substantivos","A2"],
+["der Schlüssel","Substantivo masc. · pl: Schlüssel","a chave","Er steckte den Schlüssel ins Schloss. · Ele colocou a chave na fechadura.","Substantivos","A1"],
+["das Fenster","Substantivo neutro · pl: Fenster","a janela","Er öffnete das Fenster einen Spalt. · Ele abriu a janela um pouquinho.","Substantivos","A1"],
+["der Vorhang","Substantivo masc. · pl: Vorhänge","a cortina","Die Vorhänge waren zugezogen. · As cortinas estavam fechadas.","Substantivos","B1"],
+["der Teppich","Substantivo masc. · pl: Teppiche","o tapete","Er kroch über den Teppich. · Ele rastejou sobre o tapete.","Substantivos","A2"],
+["das Sofa","Substantivo neutro · pl: Sofas","o sofá","Sie saßen stumm auf dem Sofa. · Eles sentavam em silêncio no sofá.","Substantivos","A1"],
+["der Schrank","Substantivo masc. · pl: Schränke","o armário / o guarda-roupa","Er versteckte sich hinter dem Schrank. · Ele se escondeu atrás do armário.","Substantivos","A1"],
+["die Wand","Substantivo fem. · pl: Wände","a parede","Er kletterte an der Wand. · Ele trepou pela parede.","Substantivos","A1"],
+["die Decke","Substantivo fem. · pl: Decken","o teto / o cobertor","An der Decke hingen Spinnweben. · No teto havia teias de aranha.","Substantivos","A2"],
+
+// — EXPRESSÕES E FRASES LITERÁRIAS B2–C1 —
+["sich in jemanden einfühlen","Expressão verbal","se identificar com alguém / ter empatia","Es fiel ihr schwer, sich in ihn einzufühlen. · Era difícil para ela se identificar com ele.","Frases","C1"],
+["die Kontrolle verlieren","Expressão verbal","perder o controle","Er verlor langsam die Kontrolle. · Ele foi perdendo o controle aos poucos.","Frases","B2"],
+["den Mut verlieren","Expressão verbal","perder a coragem / desanimar","Er verlor nie den Mut. · Ele nunca perdeu a coragem.","Frases","B1"],
+["auf sich nehmen","Expressão verbal separável","assumir / tomar sobre si","Er nahm alles auf sich. · Ele assumiu tudo.","Frases","B2"],
+["außer sich sein","Expressão verbal","estar fora de si / estar transtornado","Sie war ganz außer sich. · Ela estava completamente fora de si.","Frases","B2"],
+["am Ende seiner Kräfte","Expressão","no limite das suas forças","Er war am Ende seiner Kräfte. · Ele estava no limite das suas forças.","Frases","B2"],
+["Es kommt darauf an","Expressão","Depende (de)","Es kommt darauf an, wie man es sieht. · Depende de como se vê.","Frases","B1"],
+["Es macht nichts","Expressão coloquial","Não tem problema / Não importa","Es macht nichts, sei ruhig. · Não tem problema, fique tranquilo.","Frases","A2"],
+["sich keine Sorgen machen","Expressão verbal refl.","não se preocupar","Mach dir keine Sorgen. · Não se preocupe.","Frases","A2"],
+["zu sich kommen","Expressão verbal","recobrar os sentidos / voltar a si","Er kam langsam zu sich. · Ele voltou a si lentamente.","Frases","B2"],
+["mit etwas abfinden","Expressão verbal","conformar-se com algo","Er musste sich damit abfinden. · Ele tinha que se conformar com isso.","Frases","B2"],
+["den Überblick verlieren","Expressão verbal","perder a visão geral / se desorientar","Sie verlor den Überblick über alles. · Ela perdeu a visão geral de tudo.","Frases","B2"],
+["von Sinnen sein","Expressão","estar fora do juízo / estar louco","Er schien ganz von Sinnen. · Ele parecia completamente fora do juízo.","Frases","C1"],
+["sich abfinden mit","Expressão verbal refl.","resignar-se a / conformar-se com","Er fand sich mit seinem Los ab. · Ele se resignou à sua sorte.","Frases","B2"],
+["ins Stocken geraten","Expressão verbal","travar / paralisar","Die Kommunikation geriet ins Stocken. · A comunicação travou.","Frases","C1"],
+
+// — VERBOS SEPARÁVEIS B1–C1 —
+["aufwachen","Verbo intrans. separável · ist aufgewacht","acordar (de um sono)","Er wachte erschrocken auf. · Ele acordou assustado.","Verbos","A2"],
+["sich umdrehen","Verbo refl. separável · hat sich umgedreht","virar-se / girar","Er versuchte sich umzudrehen. · Ele tentou se virar.","Verbos","A2"],
+["zurückhalten","Verbo trans. separável irreg. · hat zurückgehalten","segurar / conter / reter","Sie hielten sich zurück. · Eles se contiveram.","Verbos","B2"],
+["herumwälzen","Verbo refl. separável · hat sich herumgewälzt","se revirar / se rolar","Er wälzte sich im Bett herum. · Ele ficou se revirando na cama.","Verbos","B2"],
+["aufschlagen","Verbo intrans. separável irreg. · hat aufgeschlagen","bater ao cair / abrir (livro)","Er schlug hart auf dem Boden auf. · Ele bateu com força no chão.","Verbos","B2"],
+["abhalten","Verbo trans. separável irreg. · hat abgehalten","impedir / segurar","Nichts konnte ihn davon abhalten. · Nada podia impedi-lo.","Verbos","B2"],
+["vorkommen","Verbo intrans. separável irreg. · ist vorgekommen","acontecer / parecer / ocorrer","Es kam ihm seltsam vor. · Pareceu-lhe estranho.","Verbos","B1"],
+["wahrnehmen","Verbo trans. separável irreg. · hat wahrgenommen","perceber / notar","Er nahm alles scharf wahr. · Ele percebia tudo com nitidez.","Verbos","B2"],
+["aushalten","Verbo trans. separável irreg. · hat ausgehalten","aguentar / suportar","Es war kaum auszuhalten. · Era quase insuportável.","Verbos","B2"],
+["nachlassen","Verbo intrans. separável irreg. · hat nachgelassen","diminuir / afrouxar / enfraquecer","Der Schmerz ließ nach. · A dor diminuiu.","Verbos","B2"],
+
+// — CONECTIVOS E GRAMÁTICA —
+["obwohl","Conjunção subordinativa","embora / apesar de","Obwohl er krank war, stand er auf. · Embora estivesse doente, ele se levantou.","Gramática","B1"],
+["sobald","Conjunção temporal","assim que / logo que","Sobald er konnte, stand er auf. · Assim que pôde, ele se levantou.","Gramática","B1"],
+["solange","Conjunção temporal","enquanto / enquanto durar","Solange er lebte, litt er. · Enquanto viveu, ele sofreu.","Gramática","B1"],
+["während","Conjunção / Preposição · Genitiv","enquanto / durante","Während er schlief, träumte er. · Enquanto dormia, ele sonhava.","Gramática","A2"],
+["falls","Conjunção condicional","caso / se (hipótese)","Falls er kommt, sag mir Bescheid. · Caso ele venha, me avise.","Gramática","B1"],
+["weder... noch...","Correlato conjuntivo negativo","nem... nem...","Weder Hunger noch Durst störte ihn. · Nem fome nem sede o incomodava.","Gramática","B2"],
+["sowohl... als auch...","Correlato conjuntivo aditivo","tanto... como também...","Sowohl er als auch sie litt. · Tanto ele como ela sofria.","Gramática","B2"],
+["je... desto...","Estrutura comparativa","quanto mais... mais...","Je mehr er schlief, desto müder wurde er. · Quanto mais dormia, mais cansado ficava.","Gramática","B2"],
+["anstatt... zu","Estrutura com infinitivo","em vez de... (fazer algo)","Anstatt zu reden, schwieg er. · Em vez de falar, ele ficou em silêncio.","Gramática","B2"],
+["ohne... zu","Estrutura com infinitivo","sem... (fazer algo)","Er ging, ohne sich umzudrehen. · Ele foi embora sem se virar.","Gramática","B2"],
+// ── Verbos cotidianos B1 ──
+["schreien","Verbo · irregular · schreit/schrie/geschrien","gritar","Er schrie vor Schmerz. · Ele gritou de dor.","Verbos","B1"],
+["flüstern","Verbo · regular","sussurrar","Sie flüsterte ihm ins Ohr. · Ela sussurrou no ouvido dele.","Verbos","A2"],
+["stolpern","Verbo · regular · sein","tropeçar","Er stolperte über den Stein. · Ele tropeçou na pedra.","Verbos","B1"],
+["klettern","Verbo · regular · sein","escalar / trepar","Die Kinder klettern auf den Baum. · As crianças sobem na árvore.","Verbos","A2"],
+["schwitzen","Verbo · regular","suar","Im Sommer schwitze ich viel. · No verão suo muito.","Verbos","A2"],
+["gähnen","Verbo · regular","bocejar","Er gähnte laut im Meeting. · Ele bocejou alto na reunião.","Verbos","A2"],
+["niesen","Verbo · regular","espirrar","Sie niest dreimal hintereinander. · Ela espirra três vezes seguidas.","Verbos","A2"],
+["streicheln","Verbo · regular","acariciar","Er streichelt den Hund sanft. · Ele acaricia o cachorro suavemente.","Verbos","A2"],
+["zerbrechen","Verbo · irregular · zerbricht/zerbrach/zerbrochen","quebrar / estilhaçar","Das Glas zerbrach in tausend Stücke. · O copo se partiu em mil pedaços.","Verbos","B1"],
+["verschwinden","Verbo · irregular · sein · verschwand/verschwunden","desaparecer","Er verschwand spurlos. · Ele desapareceu sem deixar rastro.","Verbos","B1"],
+// ── Adjetivos B1 ──
+["tapfer","Adjetivo","corajoso / valente","Er war tapfer im Kampf. · Ele foi valente na luta.","Adjetivos","B1"],
+["neugierig","Adjetivo","curioso","Kinder sind von Natur aus neugierig. · Crianças são curiosas por natureza.","Adjetivos","A2"],
+["geizig","Adjetivo","avarento / mão-de-vaca","Er ist so geizig, er teilt nichts. · Ele é tão mão-de-vaca que não divide nada.","Adjetivos","B1"],
+["mürrisch","Adjetivo","rabugento / mal-humorado","Morgens ist er immer mürrisch. · De manhã ele é sempre rabugento.","Adjetivos","B1"],
+["zuverlässig","Adjetivo","confiável","Sie ist eine zuverlässige Mitarbeiterin. · Ela é uma funcionária confiável.","Adjetivos","B1"],
+["überwältigend","Adjetivo","avassalador / esmagador","Die Aussicht war überwältigend. · A vista era de tirar o fôlego.","Adjetivos","B2"],
+// ── Frases coloquiais / gírias ──
+["Na klar!","Expressão coloquial","Claro! / Com certeza!","Kommst du mit? Na klar! · Vai junto? Claro!","Frases","A1"],
+["Quatsch!","Expressão coloquial","Bobagem! / Que absurdo!","Das ist doch Quatsch! · Isso é bobagem!","Frases","A2"],
+["Alles klar?","Expressão coloquial","Tudo bem? / Tá entendido?","Alles klar bei dir? · Tá tudo bem com você?","Frases","A1"],
+["Genau!","Expressão coloquial","Exatamente! / Isso mesmo!","Genau, so machen wir das! · Exatamente, é assim que fazemos!","Frases","A1"],
+["Stimmt!","Expressão coloquial","É verdade! / Verdade!","Stimmt, das hatte ich vergessen. · É verdade, eu tinha esquecido.","Frases","A1"],
+["Echt?","Expressão coloquial","Sério? / De verdade?","Echt? Das glaube ich kaum. · Sério? Mal acredito.","Frases","A1"],
+["Krass!","Expressão de espanto","Que loucura! / Absurdo! / Que coisa!","Das ist ja krass! · Isso é uma loucura!","Frases","A2"],
+["Ich bin platt.","Expressão coloquial","Fiquei de queixo caído. / Fiquei sem palavras.","Als ich die Nachricht hörte, war ich platt. · Quando ouvi a notícia, fiquei de queixo caído.","Frases","B1"],
+["Das ist mir egal.","Expressão coloquial","Tanto faz. / Não me importa.","Ob er kommt oder nicht, das ist mir egal. · Se ele vier ou não, tanto faz.","Frases","A2"],
+["Mach dir keine Sorgen!","Expressão coloquial","Não se preocupe!","Mach dir keine Sorgen, das wird schon. · Não se preocupe, vai dar certo.","Frases","A2"],
+["Wie auch immer.","Expressão coloquial","De qualquer forma. / Seja como for.","Wie auch immer, wir müssen weitermachen. · De qualquer forma, precisamos continuar.","Frases","B1"],
+["Doch!","Partícula de contradição","Mas sim! / Claro que sim!","Das ist nicht wahr! — Doch! · Isso não é verdade! — Mas é sim!","Frases","B1"],
+["Quatsch mit Soße!","Expressão coloquial","Que bobagem! (intensificado)","Das ist doch Quatsch mit Soße! · Isso é pura bobagem!","Frases","B1"],
+["auf jeden Fall","Expressão coloquial","com certeza / de qualquer jeito","Ich komme auf jeden Fall. · Venho com certeza.","Frases","A2"],
+["na ja","Expressão coloquial","bem... / mais ou menos","Na ja, es könnte besser sein. · Bem... poderia ser melhor.","Frases","A2"],
+["naja, so lala","Expressão coloquial","mais ou menos / regular","Wie war der Film? — Naja, so lala. · Como foi o filme? — Mais ou menos.","Frases","B1"],
+["Ich habe keinen Bock.","Expressão coloquial","Não estou com vontade. / Não quero.","Ich habe keinen Bock auf Hausaufgaben. · Não estou com vontade de fazer lição.","Frases","B1"],
+["Das nervt!","Expressão coloquial","Que chato! / Isso irrita!","Das nervt mich total! · Isso me irrita muito!","Frases","A2"],
+["läuft bei mir","Expressão coloquial","tá tudo indo bem / tô bem na fita","Neuen Job? Läuft bei mir! · Novo emprego? Tô bem na fita!","Frases","B2"],
+["Lass mich in Ruhe!","Expressão coloquial","Me deixa em paz!","Ich bin müde, lass mich in Ruhe! · Estou cansado, me deixa em paz!","Frases","A2"],
+["Das ist nicht mein Ding.","Expressão coloquial","Não é minha praia. / Não é o meu estilo.","Fußball? Das ist nicht mein Ding. · Futebol? Não é minha praia.","Frases","B1"],
+["Daumen drücken!","Expressão coloquial","Boa sorte! (lit.: apertar os polegares)","Ich drücke dir die Daumen! · Torço por você! / Boa sorte!","Frases","A2"],
+["Das geht auf keine Kuhhaut!","Expressão idiomática","Isso passa dos limites! / É demais!","Was er getan hat, geht auf keine Kuhhaut! · O que ele fez passa dos limites!","Frases","C1"],
+["Ich verstehe nur Bahnhof.","Expressão idiomática","Não entendo nada. (lit.: só entendo 'estação')","Ich verstehe nur Bahnhof — zu viel Fachsprache! · Não entendo nada — jargão demais!","Frases","B2"],
+["Alles hat ein Ende, nur die Wurst hat zwei.","Ditado coloquial","Tudo tem um fim. (humor)","Tja, alles hat ein Ende, nur die Wurst hat zwei! · Bem, tudo tem um fim!","Frases","B2"],
+["Das ist nicht dein Ernst!","Expressão coloquial","Você não tá falando sério! / Vai nessa!","Das ist nicht dein Ernst, oder?! · Você não tá falando sério?!","Frases","B1"],
+["komm schon!","Expressão coloquial","vai logo! / vamos lá! / anda logo!","Komm schon, wir sind spät! · Anda logo, estamos atrasados!","Frases","A2"],
+["Mist!","Expressão coloquial","Droga! / Merda! (suave)","Mist, ich habe meinen Schlüssel vergessen! · Droga, esqueci minha chave!","Frases","A2"],
+["das Ding","Gíria coloquial","o negócio / a coisa (objeto)","Gib mir mal das Ding da drüben. · Me passa aquele negócio ali.","Frases","A2"],
+["mega","Advérbio coloquial (gíria)","muito / super / mega","Das war mega lecker! · Isso estava super gostoso!","Frases","A2"],
+["voll","Advérbio coloquial","muito / completamente (intensificador)","Das war voll cool! · Isso foi muito legal!","Frases","A2"],
+["Ich raff das nicht.","Expressão coloquial","Não tô pegando. / Não entendo isso.","Ich raff das nicht, kannst du es nochmal erklären? · Não tô pegando, pode explicar de novo?","Frases","B1"],
+["Es ist zum Kotzen.","Expressão coloquial (forte)","É de dar nojo. / Que situação horrível.","Die ganze Situation ist zum Kotzen. · A situação toda é de dar nojo.","Frases","B2"],
+["Hau ab!","Expressão coloquial","Vai embora! / Cai fora!","Wenn du so redest, hau ab! · Se você falar assim, cai fora!","Frases","B1"],
+["Schau mal!","Expressão coloquial","Olha só! / Veja!","Schau mal, was ich gefunden habe! · Olha só o que eu achei!","Frases","A1"],
+["kein Wunder","Expressão coloquial","não é à toa / sem surpresa","Kein Wunder, dass er müde ist. · Não é à toa que ele está cansado.","Frases","A2"],
+["Ich bin dabei!","Expressão coloquial","Tô dentro! / Embarco nisso!","Party am Freitag? Ich bin dabei! · Festa na sexta? Tô dentro!","Frases","A1"],
+["einen Kater haben","Expressão coloquial","estar de ressaca","Nach der Party hatte er einen schlimmen Kater. · Depois da festa ele estava de ressaca.","Frases","B1"],
+["Er hat einen Vogel.","Expressão idiomática","Ele é maluco. (lit.: tem um pássaro)","Was denkt er sich dabei? Er hat doch einen Vogel! · No que ele estava pensando? Ele é maluco!","Frases","B1"],
+["auf Wolke sieben schweben","Expressão idiomática","estar nas nuvens / apaixonadíssimo","Seit er verliebt ist, schwebt er auf Wolke sieben. · Desde que se apaixonou, está nas nuvens.","Frases","B2"],
+];
+
+// ═══════════════════════════════════════════════════════════
+//  STORAGE — claude.db + localStorage como fallback
+// ═══════════════════════════════════════════════════════════
+let state = {srs:{}, stats:{}};
+const LS_KEY='fc_v4';
+
+// espera o claude.db ficar disponível (até 5s)
+function waitForDB(){
+  return new Promise(resolve=>{
+    if(window.claude?.db) return resolve(window.claude.db);
+    let tries=0;
+    const t=setInterval(()=>{
+      tries++;
+      if(window.claude?.db){ clearInterval(t); resolve(window.claude.db); }
+      else if(tries>50){ clearInterval(t); resolve(null); }
+    },100);
+  });
+}
+
+async function loadFromDB(){
+  // tenta localStorage primeiro (imediato)
+  try{
+    const ls=JSON.parse(localStorage.getItem(LS_KEY)||'{}');
+    if(ls.srs) state.srs=ls.srs;
+    if(ls.stats) state.stats=ls.stats;
+  }catch{}
+  // depois tenta cloud DB (pode ter dados mais recentes)
+  try{
+    const db=await waitForDB();
+    if(!db) return;
+    const srsDoc=await db.get('progress/srs');
+    if(srsDoc){ state.srs=srsDoc.srs||{}; state.stats=srsDoc.stats||{}; }
+    const customDoc=await db.get('progress/custom');
+    if(customDoc){
+      (customDoc.cards||[]).forEach(c=>{
+        if(!BASE_CARDS.find(x=>x.de===c.de)){ c.custom=true; BASE_CARDS.push(c); }
+      });
+    }
+    // sincroniza localStorage com o que veio do cloud
+    try{ localStorage.setItem(LS_KEY,JSON.stringify({srs:state.srs,stats:state.stats})); }catch{}
+  }catch(e){ console.warn('DB load error',e); }
+}
+
+let _saveTimer=null;
+function saveState(){
+  // salva imediatamente no localStorage
+  try{ localStorage.setItem(LS_KEY,JSON.stringify({srs:state.srs,stats:state.stats})); }catch{}
+  // e no cloud com debounce
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(async()=>{
+    try{
+      const db=await waitForDB();
+      if(!db) return;
+      await db.set('progress/srs',{srs:state.srs, stats:state.stats});
+    }catch(e){ console.warn('DB save error',e); }
+  }, 800);
+}
+
+function saveCustomCards(){
+  setTimeout(async()=>{
+    try{
+      const db=await waitForDB();
+      if(!db) return;
+      await db.set('progress/custom',{cards:BASE_CARDS.filter(c=>c.custom)});
+    }catch(e){ console.warn('DB custom save error',e); }
+  }, 200);
+}
+
+const BASE_CARDS = RAW.map(r=>({de:r[0],deHint:r[1],pt:r[2],ptHint:r[3],cat:r[4],lvl:r[5]}));
+
+function getCardSRS(de){
+  if(!state.srs[de]) state.srs[de]={interval:0,ease:2.0,due:0,errors:0,seen:0};
+  return state.srs[de];
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('show'));
+    t.classList.add('active');
+    document.getElementById('view-'+t.dataset.view).classList.add('show');
+    if(t.dataset.view==='stats') renderStats();
+    if(t.dataset.view==='srs') { buildSRSSelects(); buildSRSDeck(); renderSRSInfo(); }
+    if(t.dataset.view==='type') { setTimeout(()=>document.getElementById('typeInput').focus(),150); }
+    if(t.dataset.view==='mc') { buildMCSelects(); startMC(false); }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+//  ÁUDIO (Web Speech API)
+// ═══════════════════════════════════════════════════════════
+function speak(text){
+  if(!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const word = text.split(' ')[0].replace(/[·,!?]/g,'');
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang='de-DE'; u.rate=0.85;
+  speechSynthesis.speak(u);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VIEW: STUDY
+// ═══════════════════════════════════════════════════════════
+let studyDeck=[],studyIdx=0,studyFlipped=false,studyCorrect=0,studyWrong=0;
+let sessionLvl={}; // {lvl:{c,w}}
+
+function buildSelects(){
+  const cs=document.getElementById('categorySelect');
+  const ls=document.getElementById('levelSelect');
+  const pc=cs.value,pl=ls.value;
+  cs.innerHTML='<option value="">Todas categorias</option>';
+  [...new Set(BASE_CARDS.map(c=>c.cat))].sort().forEach(c=>{
+    const o=document.createElement('option');o.textContent=c;cs.appendChild(o);
+  });
+  ls.innerHTML='<option value="">Todos níveis</option>';
+  ['A1','A2','B1','B2','C1'].forEach(v=>{
+    const o=document.createElement('option');o.textContent=v;ls.appendChild(o);
+  });
+  if([...cs.options].some(o=>o.value===pc))cs.value=pc;
+  if([...ls.options].some(o=>o.value===pl))ls.value=pl;
+}
+function filtered(){
+  const cat=document.getElementById('categorySelect').value;
+  const lvl=document.getElementById('levelSelect').value;
+  return BASE_CARDS.filter(c=>(!cat||c.cat===cat)&&(!lvl||c.lvl===lvl)&&!getCardSRS(c.de).hidden);
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function startStudy(sh=false){
+  studyDeck=filtered();
+  if(!studyDeck.length){alert('Nenhuma carta nesta seleção.');return;}
+  if(sh)shuffle(studyDeck);
+  studyIdx=0;studyCorrect=0;studyWrong=0;studyFlipped=false;sessionLvl={};
+  document.getElementById('correctCount').textContent=0;
+  document.getElementById('wrongCount').textContent=0;
+  document.getElementById('totalSeen').textContent=0;
+  document.getElementById('doneScreen').classList.remove('show');
+  document.getElementById('scene').style.display='';
+  document.getElementById('answerRow').style.display='none';
+  showStudyCard();
+}
+function showStudyCard(){
+  if(studyIdx>=studyDeck.length){showStudyDone();return;}
+  const c=studyDeck[studyIdx];
+  document.getElementById('frontWord').textContent=c.de;
+  document.getElementById('frontHint').textContent=c.deHint||'';
+  document.getElementById('backWord').textContent=c.pt;
+  document.getElementById('backHint').textContent=c.ptHint?c.ptHint.replace('·','|'):'';
+  document.getElementById('backLevel').textContent=c.lvl||'';
+  studyFlipped=false;
+  document.getElementById('card').classList.remove('flipped');
+  document.getElementById('answerRow').style.display='none';
+  const t=studyDeck.length,d=studyIdx;
+  document.getElementById('progressText').textContent=`Carta ${Math.min(d+1,t)} de ${t}`;
+  const p=t?Math.round(d/t*100):0;
+  document.getElementById('progressPct').textContent=p+'%';
+  document.getElementById('progressFill').style.width=p+'%';
+}
+function studyAnswer(ok){
+  const c=studyDeck[studyIdx];
+  if(ok){studyCorrect++;}else{studyWrong++;}
+  // persist stats
+  if(!state.stats[c.lvl])state.stats[c.lvl]={correct:0,wrong:0};
+  state.stats[c.lvl][ok?'correct':'wrong']++;
+  // session per-level
+  if(!sessionLvl[c.lvl])sessionLvl[c.lvl]={c:0,w:0};
+  sessionLvl[c.lvl][ok?'c':'w']++;
+  // SRS: leve bump even in study mode
+  const s=getCardSRS(c.de);
+  s.seen++;
+  if(!ok)s.errors++;
+  saveState();
+  document.getElementById('correctCount').textContent=studyCorrect;
+  document.getElementById('wrongCount').textContent=studyWrong;
+  document.getElementById('totalSeen').textContent=studyCorrect+studyWrong;
+  studyIdx++;showStudyCard();
+}
+function showStudyDone(){
+  document.getElementById('scene').style.display='none';
+  document.getElementById('answerRow').style.display='none';
+  const t=studyCorrect+studyWrong,p=t?Math.round(studyCorrect/t*100):0;
+  document.getElementById('doneEmoji').textContent=p>=90?'🏆':p>=70?'🎉':p>=50?'👍':'📚';
+  document.getElementById('doneScore').textContent=`${studyCorrect} de ${t} corretas · ${p}%`;
+  // per-level grid
+  const grid=document.getElementById('doneLevelGrid');
+  grid.innerHTML='';
+  Object.entries(sessionLvl).forEach(([lvl,{c,w}])=>{
+    const total=c+w,pct=total?Math.round(c/total*100):0;
+    grid.innerHTML+=`<div class="done-cell"><div class="num">${pct}%</div><div class="lbl">${lvl} · ${c}/${total}</div></div>`;
+  });
+  document.getElementById('doneScreen').classList.add('show');
+}
+
+document.getElementById('scene').addEventListener('click',()=>{
+  if(studyIdx>=studyDeck.length)return;
+  studyFlipped=!studyFlipped;
+  document.getElementById('card').classList.toggle('flipped',studyFlipped);
+  document.getElementById('answerRow').style.display=studyFlipped?'flex':'none';
+});
+document.getElementById('audioBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  speak(document.getElementById('frontWord').textContent);
+});
+document.getElementById('wrongBtn').addEventListener('click',()=>studyAnswer(false));
+document.getElementById('rightBtn').addEventListener('click',()=>studyAnswer(true));
+document.getElementById('shuffleBtn').addEventListener('click',()=>startStudy(true));
+document.getElementById('resetBtn').addEventListener('click',()=>startStudy(false));
+document.getElementById('restartBtn').addEventListener('click',()=>startStudy(true));
+document.getElementById('categorySelect').addEventListener('change',()=>startStudy(false));
+document.getElementById('levelSelect').addEventListener('change',()=>startStudy(false));
+
+// ═══════════════════════════════════════════════════════════
+//  VIEW: SRS (espaçamento repetido simplificado)
+// ═══════════════════════════════════════════════════════════
+let srsDeck=[],srsIdx=0,srsFlipped=false,srsC=0,srsH=0,srsW=0;
+const NOW=()=>Math.floor(Date.now()/86400000); // dias desde epoch
+
+function srsCardStatus(s){
+  if(s.interval===0)return'new';
+  if(s.interval<1)return'learn';
+  return'review';
+}
+
+function buildSRSSelects(){
+  const cs=document.getElementById('srsCategorySelect');
+  const ls=document.getElementById('srsLevelSelect');
+  const cats=[...new Set(BASE_CARDS.map(c=>c.cat))].sort();
+  const lvls=['A1','A2','B1','B2','C1'];
+  cs.innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>`<option>${c}</option>`).join('');
+  ls.innerHTML='<option value="">Todos os níveis</option>'+lvls.map(l=>`<option>${l}</option>`).join('');
+}
+
+function buildSRSDeck(){
+  const today=NOW();
+  const cat=document.getElementById('srsCategorySelect').value;
+  const lvl=document.getElementById('srsLevelSelect').value;
+  srsDeck=BASE_CARDS.filter(c=>{
+    if(cat&&c.cat!==cat) return false;
+    if(lvl&&c.lvl!==lvl) return false;
+    const s=getCardSRS(c.de);
+    return s.due<=today && !s.hidden;
+  });
+  shuffle(srsDeck);
+  renderSRSInfo();
+}
+function renderSRSInfo(){
+  const today=NOW();
+  let nNew=0,nLearn=0,nReview=0,nDone=0;
+  BASE_CARDS.forEach(c=>{
+    const s=getCardSRS(c.de);
+    if(s.interval===0){nNew++;}
+    else if(s.interval<1){nLearn++;}
+    else if(s.due<=today){nReview++;}
+    else{nDone++;}
+  });
+  document.getElementById('srsNew').textContent=nNew;
+  document.getElementById('srsLearn').textContent=nLearn;
+  document.getElementById('srsReview').textContent=nReview;
+  document.getElementById('srsDone').textContent=nDone;
+}
+
+function startSRS(){
+  buildSRSDeck();
+  srsIdx=0;srsC=0;srsH=0;srsW=0;srsFlipped=false;
+  document.getElementById('srsCorrect').textContent=0;
+  document.getElementById('srsHard').textContent=0;
+  document.getElementById('srsWrong').textContent=0;
+  document.getElementById('srsDoneScreen').classList.remove('show');
+  document.getElementById('srsScene').style.display='';
+  document.getElementById('srsAnswerRow').style.display='none';
+  if(!srsDeck.length){ showSRSDone(); return; }
+  showSRSCard();
+}
+function showSRSCard(){
+  if(srsIdx>=srsDeck.length){showSRSDone();return;}
+  const c=srsDeck[srsIdx];
+  const s=getCardSRS(c.de);
+  const status=srsCardStatus(s);
+  document.getElementById('srsFrontWord').textContent=c.de;
+  document.getElementById('srsFrontHint').textContent=c.deHint||'';
+  document.getElementById('srsBackWord').textContent=c.pt;
+  document.getElementById('srsBackHint').textContent=c.ptHint?c.ptHint.replace('·','|'):'';
+  document.getElementById('srsBackLevel').textContent=c.lvl||'';
+  const badge=document.getElementById('srsBadge');
+  badge.className='srs-badge srs-'+status;
+  badge.textContent=status==='new'?'Nova':status==='learn'?'Aprender':'Revisar';
+  srsFlipped=false;
+  document.getElementById('srsCard').classList.remove('flipped');
+  document.getElementById('srsAnswerRow').style.display='none';
+  const t=srsDeck.length,d=srsIdx;
+  document.getElementById('srsProgressText').textContent=`Carta ${Math.min(d+1,t)} de ${t}`;
+  const p=t?Math.round(d/t*100):0;
+  document.getElementById('srsProgressPct').textContent=p+'%';
+  document.getElementById('srsProgressFill').style.width=p+'%';
+}
+
+// SM-2 simplificado: 3 botões (errei=0, ok=3, fácil=5)
+function srsAnswer(q){ // q: 0,3,5
+  const c=srsDeck[srsIdx];
+  const s=getCardSRS(c.de);
+  const today=NOW();
+  s.seen=(s.seen||0)+1;
+  if(q===0){
+    s.errors=(s.errors||0)+1;
+    s.interval=0; s.due=today; // repetir hoje
+    srsW++;
+    if(!state.stats[c.lvl])state.stats[c.lvl]={correct:0,wrong:0};
+    state.stats[c.lvl].wrong++;
+  } else {
+    // SM-2
+    s.ease=Math.max(1.3,Math.min(2.5,s.ease+(0.1-(5-q)*(0.08+(5-q)*0.02))));
+    if(s.interval===0)s.interval=1;
+    else if(s.interval<1)s.interval=1;
+    else s.interval=Math.round(s.interval*s.ease);
+    s.due=today+s.interval;
+    if(q===3){srsH++;}else{srsC++;}
+    if(!state.stats[c.lvl])state.stats[c.lvl]={correct:0,wrong:0};
+    state.stats[c.lvl].correct++;
+  }
+  saveState();
+  document.getElementById('srsCorrect').textContent=srsC;
+  document.getElementById('srsHard').textContent=srsH;
+  document.getElementById('srsWrong').textContent=srsW;
+  srsIdx++;showSRSCard();
+}
+function showSRSDone(){
+  document.getElementById('srsScene').style.display='none';
+  document.getElementById('srsAnswerRow').style.display='none';
+  const t=srsC+srsH+srsW;
+  document.getElementById('srsDoneScore').textContent=
+    t?`${srsC} fáceis · ${srsH} ok · ${srsW} difíceis de ${t} cartas`
+    :'Nenhuma carta para revisar hoje. Volte amanhã!';
+  document.getElementById('srsDoneScreen').classList.add('show');
+  renderSRSInfo();
+}
+
+document.getElementById('srsScene').addEventListener('click',()=>{
+  if(srsIdx>=srsDeck.length)return;
+  srsFlipped=!srsFlipped;
+  document.getElementById('srsCard').classList.toggle('flipped',srsFlipped);
+  document.getElementById('srsAnswerRow').style.display=srsFlipped?'flex':'none';
+});
+document.getElementById('srsAudioBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  speak(document.getElementById('srsFrontWord').textContent);
+});
+document.getElementById('srsWrongBtn').addEventListener('click',()=>srsAnswer(0));
+document.getElementById('srsHardBtn') .addEventListener('click',()=>srsAnswer(3));
+document.getElementById('srsRightBtn').addEventListener('click',()=>srsAnswer(5));
+document.getElementById('srsHideBtn') .addEventListener('click',()=>{
+  const c=srsDeck[srsIdx];
+  const s=getCardSRS(c.de);
+  s.hidden=true;
+  saveState();
+  srsIdx++;showSRSCard();
+});
+document.getElementById('srsRestartBtn').addEventListener('click',()=>startSRS());
+document.getElementById('srsCategorySelect').addEventListener('change',()=>{buildSRSDeck();startSRS();});
+document.getElementById('srsLevelSelect').addEventListener('change',()=>{buildSRSDeck();startSRS();});
+
+// ═══════════════════════════════════════════════════════════
+//  VIEW: STATS
+// ═══════════════════════════════════════════════════════════
+function renderStats(){
+  // por nível
+  const grid=document.getElementById('levelGrid');
+  grid.innerHTML='';
+  ['A1','A2','B1','B2','C1'].forEach(lvl=>{
+    const st=state.stats[lvl]||{correct:0,wrong:0};
+    const total=st.correct+st.wrong;
+    const pct=total?Math.round(st.correct/total*100):0;
+    grid.innerHTML+=`
+      <div class="level-card">
+        <div class="lname">${lvl}</div>
+        <div class="lpct">${pct}%</div>
+        <div class="lsub">${st.correct}/${total}</div>
+        <div class="level-bar"><div class="level-bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+  });
+  // erros
+  const list=document.getElementById('errorList');
+  const errors=BASE_CARDS
+    .map(c=>({...c,...getCardSRS(c.de)}))
+    .filter(c=>c.errors>0)
+    .sort((a,b)=>b.errors-a.errors)
+    .slice(0,15);
+  if(!errors.length){
+    list.innerHTML='<div class="empty-msg">Nenhum erro registrado ainda 🎉</div>';
+    return;
+  }
+  list.innerHTML=errors.map(c=>`
+    <div class="error-item">
+      <div><div class="error-de">${c.de}</div><div class="error-pt">${c.pt}</div></div>
+      <div class="error-cnt">${c.errors}× erro</div>
+    </div>`).join('');
+
+  // cartas ocultas
+  const hidden=BASE_CARDS.filter(c=>getCardSRS(c.de).hidden);
+  const sec=document.getElementById('hiddenSection');
+  sec.style.display=hidden.length?'':'none';
+  document.getElementById('hiddenCount').textContent=`(${hidden.length})`;
+  document.getElementById('hiddenList').innerHTML=hidden.map(c=>`
+    <div class="error-item">
+      <div><div class="error-de">${c.de}</div><div class="error-pt">${c.pt}</div></div>
+      <button class="btn btn-secondary" style="font-size:.7rem;padding:4px 8px;" onclick="unhideCard('${c.de.replace(/'/g,"\\'")}')">Reativar</button>
+    </div>`).join('');
+}
+
+function unhideCard(de){
+  const s=getCardSRS(de);
+  delete s.hidden;
+  s.due=0; // aparece no SRS de novo
+  saveState();
+  renderStats();
+}
+
+document.getElementById('showAllBtn').addEventListener('click',()=>{
+  BASE_CARDS.forEach(c=>{ const s=getCardSRS(c.de); if(s.hidden){ delete s.hidden; s.due=0; } });
+  saveState();
+  renderStats();
+});
+
+document.getElementById('resetStatsBtn').addEventListener('click',()=>{
+  if(!confirm('Zerar todas as estatísticas e progresso SRS?'))return;
+  state.srs={};state.stats={};saveState();renderStats();renderSRSInfo();
+});
+
+// ═══════════════════════════════════════════════════════════
+//  MODAL ADICIONAR
+// ═══════════════════════════════════════════════════════════
+document.getElementById('addBtn').addEventListener('click',()=>document.getElementById('modalBg').classList.add('show'));
+document.getElementById('cancelModal').addEventListener('click',()=>document.getElementById('modalBg').classList.remove('show'));
+document.getElementById('saveModal').addEventListener('click',()=>{
+  const de=document.getElementById('newDe').value.trim();
+  const pt=document.getElementById('newPt').value.trim();
+  if(!de||!pt){alert('Preencha a palavra alemã e a tradução.');return;}
+  BASE_CARDS.push({de,pt,
+    deHint:document.getElementById('newDeHint').value.trim(),
+    ptHint:document.getElementById('newPtHint').value.trim(),
+    cat:document.getElementById('newCategory').value,
+    lvl:document.getElementById('newLevel').value
+  });
+  document.getElementById('modalBg').classList.remove('show');
+  ['newDe','newDeHint','newPt','newPtHint'].forEach(id=>document.getElementById(id).value='');
+  startStudy(false);
+});
+document.getElementById('modalBg').addEventListener('click',e=>{
+  if(e.target===e.currentTarget)document.getElementById('modalBg').classList.remove('show');
+});
+
+// ═══════════════════════════════════════════════════════════
+//  VIEW: DIGITAR
+// ═══════════════════════════════════════════════════════════
+let typeDeck=[],typeIdx=0,typeC=0,typeW=0,typeRevealed=false,typeHintCount=0;
+
+function buildTypeSelects(){
+  const cs=document.getElementById('typeCategorySelect');
+  const ls=document.getElementById('typeLevelSelect');
+  cs.innerHTML='<option value="">Todas categorias</option>';
+  [...new Set(BASE_CARDS.map(c=>c.cat))].sort().forEach(c=>{
+    const o=document.createElement('option');o.textContent=c;cs.appendChild(o);
+  });
+  ls.innerHTML='<option value="">Todos níveis</option>';
+  ['A1','A2','B1','B2','C1'].forEach(v=>{
+    const o=document.createElement('option');o.textContent=v;ls.appendChild(o);
+  });
+}
+function typeFiltered(){
+  const cat=document.getElementById('typeCategorySelect').value;
+  const lvl=document.getElementById('typeLevelSelect').value;
+  return BASE_CARDS.filter(c=>(!cat||c.cat===cat)&&(!lvl||c.lvl===lvl)&&!getCardSRS(c.de).hidden);
+}
+function startType(sh=false){
+  typeDeck=typeFiltered();
+  if(!typeDeck.length){alert('Nenhuma carta nesta seleção.');return;}
+  if(sh)shuffle(typeDeck);
+  typeIdx=0;typeC=0;typeW=0;
+  document.getElementById('typeCorrect').textContent=0;
+  document.getElementById('typeWrong').textContent=0;
+  document.getElementById('typeSeen').textContent=0;
+  document.getElementById('typeDoneScreen').classList.remove('show');
+  document.getElementById('typeCard').style.display='';
+  document.getElementById('typeNextRow').style.display='none';
+  showTypeCard();
+}
+function showTypeCard(){
+  if(typeIdx>=typeDeck.length){showTypeDone();return;}
+  typeRevealed=false;typeHintCount=0;
+  const c=typeDeck[typeIdx];
+  document.getElementById('typePtWord').textContent=c.pt;
+  document.getElementById('typePtHint').textContent=''; // só aparece após revelar
+  document.getElementById('typeGrammar').textContent='';
+  document.getElementById('typeInput').value='';
+  document.getElementById('typeInput').className='type-input';
+  document.getElementById('typeInput').disabled=false;
+  document.getElementById('typeFeedback').textContent='';
+  document.getElementById('typeFeedback').className='type-feedback';
+  document.getElementById('typeAnswer').textContent='';
+  document.getElementById('typeAudioRevealBtn').style.display='none';
+  document.getElementById('typeNextRow').style.display='none';
+  document.getElementById('typeHintBtn').style.display='';
+  const t=typeDeck.length,d=typeIdx;
+  document.getElementById('typeProgressText').textContent=`Carta ${Math.min(d+1,t)} de ${t}`;
+  const p=t?Math.round(d/t*100):0;
+  document.getElementById('typeProgressPct').textContent=p+'%';
+  document.getElementById('typeProgressFill').style.width=p+'%';
+  setTimeout(()=>document.getElementById('typeInput').focus(),100);
+}
+
+// normaliza: remove artigos, minúsculas, sem acentos opcionais
+function normalizeDE(s){
+  return s.toLowerCase()
+    .replace(/^(der|die|das|ein|eine)\s+/i,'')
+    .replace(/[.,!?;:]/g,'')
+    .trim();
+}
+// aceita se a resposta bate com qualquer variante separada por /
+function checkAnswer(input, correct){
+  const inp=normalizeDE(input);
+  const variants=correct.split('/').map(v=>normalizeDE(v));
+  // exato
+  if(variants.some(v=>v===inp))return'exact';
+  // sem umlauts: ä→a, ö→o, ü→u, ß→ss
+  const stripUmlauts=s=>s.replace(/ä/g,'a').replace(/ö/g,'o').replace(/ü/g,'u').replace(/ß/g,'ss');
+  if(variants.some(v=>stripUmlauts(v)===stripUmlauts(inp)))return'accent';
+  return'wrong';
+}
+
+document.getElementById('typeInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter') checkTypeAnswer();
+});
+
+function checkTypeAnswer(){
+  if(typeRevealed)return;
+  const c=typeDeck[typeIdx];
+  const input=document.getElementById('typeInput').value.trim();
+  if(!input)return;
+  const result=checkAnswer(input,c.de);
+  typeRevealed=true;
+  document.getElementById('typeInput').disabled=true;
+  document.getElementById('typeHintBtn').style.display='none';
+  document.getElementById('typeAudioRevealBtn').style.display='flex';
+  document.getElementById('typeNextRow').style.display='flex';
+  // mostra exemplo agora que a resposta foi revelada
+  if(c.ptHint) document.getElementById('typePtHint').textContent=c.ptHint.replace(/·/g,'|');
+  if(!state.stats[c.lvl])state.stats[c.lvl]={correct:0,wrong:0};
+  const s=getCardSRS(c.de);s.seen=(s.seen||0)+1;
+  if(result==='exact'||result==='accent'){
+    document.getElementById('typeInput').classList.add('correct');
+    document.getElementById('typeFeedback').textContent=
+      result==='accent'?'✓ Correto (atenção aos umlauts!)':'✓ Correto!';
+    document.getElementById('typeFeedback').className='type-feedback ok';
+    document.getElementById('typeAnswer').innerHTML=`<span>${c.de}</span>  ${c.deHint?'· '+c.deHint:''}`;
+    typeC++;state.stats[c.lvl].correct++;
+    document.getElementById('typeWrongBtn').style.display='none';
+  }else{
+    document.getElementById('typeInput').classList.add('wrong');
+    document.getElementById('typeFeedback').textContent='✗ Errado';
+    document.getElementById('typeFeedback').className='type-feedback err';
+    document.getElementById('typeAnswer').innerHTML=`Resposta: <span>${c.de}</span>  ${c.deHint?'· '+c.deHint:''}`;
+    typeW++;state.stats[c.lvl].wrong++;
+    s.errors=(s.errors||0)+1;
+    document.getElementById('typeWrongBtn').style.display='';
+  }
+  saveState();
+  document.getElementById('typeCorrect').textContent=typeC;
+  document.getElementById('typeWrong').textContent=typeW;
+  document.getElementById('typeSeen').textContent=typeC+typeW;
+}
+
+document.getElementById('typeHintBtn').addEventListener('click',()=>{
+  const c=typeDeck[typeIdx];
+  typeHintCount++;
+  const word=c.de.replace(/^(der|die|das|ein|eine)\s+/i,'');
+  // mostra primeiras N letras
+  const hint=word.slice(0,typeHintCount)+' '+('_'.repeat(Math.max(0,word.length-typeHintCount)));
+  document.getElementById('typeGrammar').textContent='Dica: '+hint.trim()+
+    (c.deHint?' · '+c.deHint:'');
+  if(typeHintCount>=word.length)document.getElementById('typeHintBtn').style.display='none';
+});
+
+document.getElementById('typeAudioRevealBtn').addEventListener('click',()=>{
+  speak(typeDeck[typeIdx].de);
+});
+document.getElementById('typeNextBtn').addEventListener('click',()=>{
+  typeIdx++;showTypeCard();
+});
+document.getElementById('typeWrongBtn').addEventListener('click',()=>{
+  typeIdx++;showTypeCard();
+});
+document.getElementById('typeShuffleBtn').addEventListener('click',()=>startType(true));
+document.getElementById('typeResetBtn').addEventListener('click',()=>startType(false));
+document.getElementById('typeRestartBtn').addEventListener('click',()=>startType(true));
+document.getElementById('typeCategorySelect').addEventListener('change',()=>startType(false));
+document.getElementById('typeLevelSelect').addEventListener('change',()=>startType(false));
+
+function showTypeDone(){
+  document.getElementById('typeCard').style.display='none';
+  document.getElementById('typeNextRow').style.display='none';
+  const t=typeC+typeW,p=t?Math.round(typeC/t*100):0;
+  document.getElementById('typeDoneEmoji').textContent=p>=90?'🏆':p>=70?'🎉':p>=50?'👍':'📚';
+  document.getElementById('typeDoneScore').textContent=`${typeC} de ${t} corretas · ${p}%`;
+  document.getElementById('typeDoneScreen').classList.add('show');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VIEW: MÚLTIPLA ESCOLHA
+// ═══════════════════════════════════════════════════════════
+let mcDeck=[],mcIdx=0,mcC=0,mcW=0;
+
+function buildMCSelects(){
+  const cs=document.getElementById('mcCategorySelect');
+  const ls=document.getElementById('mcLevelSelect');
+  const cats=[...new Set(BASE_CARDS.map(c=>c.cat))].sort();
+  const lvls=['A1','A2','B1','B2','C1'];
+  cs.innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>`<option>${c}</option>`).join('');
+  ls.innerHTML='<option value="">Todos os níveis</option>'+lvls.map(l=>`<option>${l}</option>`).join('');
+}
+
+function mcFiltered(){
+  const cat=document.getElementById('mcCategorySelect').value;
+  const lvl=document.getElementById('mcLevelSelect').value;
+  return BASE_CARDS.filter(c=>(!cat||c.cat===cat)&&(!lvl||c.lvl===lvl)&&!getCardSRS(c.de).hidden);
+}
+
+function startMC(sh=false){
+  document.getElementById('mcDoneScreen').classList.remove('show');
+  document.getElementById('mcCard').style.display='flex';
+  mcC=0;mcW=0;mcIdx=0;
+  mcDeck=[...mcFiltered()];
+  if(sh) mcDeck.sort(()=>Math.random()-.5);
+  updateMCStats();
+  showMCCard();
+}
+
+function updateMCStats(){
+  document.getElementById('mcCorrect').textContent=mcC;
+  document.getElementById('mcWrong').textContent=mcW;
+  document.getElementById('mcSeen').textContent=mcC+mcW;
+}
+
+function showMCCard(){
+  if(mcIdx>=mcDeck.length){showMCDone();return;}
+  const c=mcDeck[mcIdx];
+  document.getElementById('mcWord').textContent=c.de;
+  document.getElementById('mcHint').textContent=c.deHint||'';
+  document.getElementById('mcExample').textContent='';
+  const t=mcDeck.length;
+  document.getElementById('mcProgressText').textContent=`Carta ${Math.min(mcIdx+1,t)} de ${t}`;
+  const p=t?Math.round(mcIdx/t*100):0;
+  document.getElementById('mcProgressPct').textContent=p+'%';
+  document.getElementById('mcProgressFill').style.width=p+'%';
+  // picks 3 wrong answers from rest of deck
+  // tenta usar mesma categoria; se insuficiente, abre para todas
+  let pool=BASE_CARDS.filter(x=>x.pt!==c.pt&&x.cat===c.cat);
+  if(pool.length<3) pool=BASE_CARDS.filter(x=>x.pt!==c.pt);
+  const wrong=pool.sort(()=>Math.random()-.5).slice(0,3).map(x=>x.pt);
+  const opts=[c.pt,...wrong].sort(()=>Math.random()-.5);
+  const wrap=document.getElementById('mcOptions');
+  wrap.innerHTML='';
+  opts.forEach(opt=>{
+    const btn=document.createElement('button');
+    btn.className='mc-opt';
+    btn.textContent=opt;
+    btn.addEventListener('click',()=>mcAnswer(btn,opt===c.pt));
+    wrap.appendChild(btn);
+  });
+}
+
+function mcAnswer(btn,isCorrect){
+  const wrap=document.getElementById('mcOptions');
+  wrap.querySelectorAll('.mc-opt').forEach(b=>b.disabled=true);
+  const c=mcDeck[mcIdx];
+  if(isCorrect){
+    btn.classList.add('correct');
+    mcC++;
+  } else {
+    btn.classList.add('wrong');
+    mcW++;
+    // reveal correct
+    wrap.querySelectorAll('.mc-opt').forEach(b=>{
+      if(b.textContent===c.pt) b.classList.add('reveal');
+    });
+  }
+  updateMCStats();
+  if(c.ptHint) document.getElementById('mcExample').textContent=c.ptHint;
+  setTimeout(()=>{mcIdx++;showMCCard();},isCorrect?900:1600);
+}
+
+function showMCDone(){
+  document.getElementById('mcCard').style.display='none';
+  const t=mcC+mcW,p=t?Math.round(mcC/t*100):0;
+  document.getElementById('mcDoneEmoji').textContent=p>=90?'🏆':p>=70?'🎉':p>=50?'👍':'📚';
+  document.getElementById('mcDoneScore').textContent=`${mcC} de ${t} corretas · ${p}%`;
+  document.getElementById('mcDoneScreen').classList.add('show');
+}
+
+document.getElementById('mcShuffleBtn').addEventListener('click',()=>startMC(true));
+document.getElementById('mcResetBtn').addEventListener('click',()=>startMC(false));
+document.getElementById('mcRestartBtn').addEventListener('click',()=>startMC(true));
+document.getElementById('mcCategorySelect').addEventListener('change',()=>startMC(false));
+document.getElementById('mcLevelSelect').addEventListener('change',()=>startMC(false));
+
+// ═══════════════════════════════════════════════════════════
+//  MODAL: TABS (carta única / importar lista)
+// ═══════════════════════════════════════════════════════════
+document.getElementById('modalTab1').addEventListener('click',()=>{
+  document.getElementById('modalTab1').classList.add('active');
+  document.getElementById('modalTab2').classList.remove('active');
+  document.getElementById('modalPane1').classList.add('show');
+  document.getElementById('modalPane2').classList.remove('show');
+  document.getElementById('importResult').textContent='';
+});
+document.getElementById('modalTab2').addEventListener('click',()=>{
+  document.getElementById('modalTab2').classList.add('active');
+  document.getElementById('modalTab1').classList.remove('active');
+  document.getElementById('modalPane2').classList.add('show');
+  document.getElementById('modalPane1').classList.remove('show');
+});
+document.getElementById('cancelImport').addEventListener('click',()=>{
+  document.getElementById('modalBg').style.display='none';
+});
+
+document.getElementById('saveImport').addEventListener('click',()=>{
+  const text=document.getElementById('importText').value.trim();
+  const lvl=document.getElementById('importLevel').value;
+  const cat=document.getElementById('importCategory').value;
+  if(!text){document.getElementById('importResult').textContent='Cole uma lista primeiro.';return;}
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  let count=0;
+  lines.forEach(line=>{
+    // aceita: = | - | : | → | >
+    const m=line.match(/^(.+?)\s*(?:=|-|:|\||→|>)\s*(.+)$/);
+    if(!m)return;
+    const de=m[1].trim(),pt=m[2].trim();
+    if(!de||!pt)return;
+    if(BASE_CARDS.find(x=>x.de===de)) return; // evita duplicata
+    const card={de,deHint:'',pt,ptHint:'',cat,lvl,custom:true};
+    BASE_CARDS.push(card);
+    count++;
+  });
+  if(count>0){
+    saveCustomCards();
+    buildSelects();buildTypeSelects();buildMCSelects();
+    startStudy(false);startType(false);startMC(false);
+    document.getElementById('importResult').textContent=`✅ ${count} carta${count>1?'s':''} importada${count>1?'s':''}!`;
+    document.getElementById('importText').value='';
+  } else {
+    document.getElementById('importResult').textContent='Nenhuma linha válida encontrada.';
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+async function init(){
+  await loadFromDB();
+  buildSelects();
+  buildTypeSelects();
+  buildMCSelects();
+  buildSRSSelects();
+  startStudy(false);
+  startType(false);
+  startMC(false);
+  startSRS();
+}
+init();
+</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
